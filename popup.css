@@ -1,0 +1,155 @@
+body {
+  cursor: default;
+  margin: 0;
+  width: 400px;
+}
+
+h3 {
+  background: #C0D7E0;
+  margin: 0;
+  padding: 0 10px;
+}
+
+h3:first-child {
+  margin-top: 0;
+}
+
+.header-accepted {
+  background: rgb(103, 210, 103);
+}
+
+.header-pending {
+  background: orange;
+}
+
+.header-error {
+  background: #F93A3A;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.loader {
+  align-items: center;
+  display: flex;
+  height: 150px;
+  justify-content: center;
+}
+
+.overlay {
+  background-color: rgba(0, 0, 0, .3);
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.progress {
+  background-color: #E6E6E6;
+  background-image: linear-gradient(to right, #3D8C00 0, #3D8C00 100%);
+  background-repeat: no-repeat;
+  display: block;
+  height: 1px;
+  width: 100%;
+}
+
+#login-form {
+  display: flex;
+  flex-direction: column;
+  margin: 10px auto;
+  width: 150px;
+}
+
+#login-form > * {
+  align-items: center;
+  margin: 2px 0;
+}
+
+#error-text {
+  color: red;
+}
+
+.review {
+  padding: 6px 10px;
+  transition: background-color 1s;
+}
+
+.review:hover {
+  outline: auto;
+}
+
+.review-link {
+  cursor: pointer;
+  flex-grow: 1;
+}
+
+.link {
+  color: blue;
+  cursor: pointer;
+}
+
+.gray {
+  color: gray;
+}
+
+.black {
+  color: black;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grow {
+  flex-grow: 1;
+}
+
+.first-review-line,
+.second-review-line {
+  display: flex;
+}
+
+.second-review-line {
+  color: gray;
+  justify-content: space-between;
+}
+
+.second-review-line > *:nth-child(1),
+.second-review-line > *:nth-child(3) {
+  width: 20%;
+}
+
+.second-review-line > *:nth-child(3) {
+  text-align: right;
+}
+
+.line-count, .unread-count {
+  float: right;
+  margin-left: 1em;
+  transition: background-color 1s;
+  white-space: nowrap;
+}
+
+.review.highlight,
+.line-count.highlight,
+.unread-count.highlight {
+  background-color: yellow;
+}
+
+#settings-view {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#settings-view > div {
+  padding: 10px 10px 0;
+}
+
+#settings-view label {
+  display: block;
+}
