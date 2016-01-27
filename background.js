@@ -85,7 +85,7 @@ class BackgroundPage {
     this.notificationsUrlMap_ = new Map();
     chrome.notifications.onClicked.addListener(
         id => this.onNotificationClicked_(id));
-    this.ready_ = this.init();
+    this.ready_ = this.init_();
   }
 
   ready() { return this.ready_; }
@@ -112,7 +112,7 @@ class BackgroundPage {
    */
   get lastError() { return this.lastError_; }
 
-  init() {
+  init_() {
     return this.readSettings_().then(() => {
       this.loggedIn_ = this.settings_.username && this.settings_.password;
       if (this.loggedIn_) {
@@ -124,14 +124,16 @@ class BackgroundPage {
   attemptLogIn(username, password) {
     this.settings_.username = username;
     this.settings_.password = password;
-    return this.refreshData_().then(() => {
-      if (this.loggedIn_) {
-        this.saveSettings_();
-      }
-    });
+    return this.getDashboardData_()
+        .then(() => {
+          if (!this.lastError_) {
+            this.saveSettings_();
+            this.scheduleNextCheck_();
+          }
+        });
   }
 
-  refreshData_() {
+  getDashboardData_() {
     return this.request(`User/${this.settings_.username}/Dashboard`)
         .then(data => {
           if (this.lastError_) {
@@ -141,8 +143,11 @@ class BackgroundPage {
             this.dashboardData_ = data;
             this.processData_();
           }
-          this.scheduleNextCheck_();
         });
+  }
+
+  refreshData_() {
+    return this.getDashboardData_().then(() => this.scheduleNextCheck_());
   }
 
   // TODO(rchlodnicki): Pass array originally.
@@ -372,8 +377,8 @@ class BackgroundPage {
     return window.fetch(this.baseUrl_() + 'JSON/' + path, {headers})
         .then(response => {
           if (!response.ok) {
-            this.lastError_ = response.statusText
-            return Promise.reject(this.lastError_);
+            this.lastError_ = response.statusText;
+            return null;
           }
           this.lastError_ = '';
           return response.json();
