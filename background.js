@@ -121,9 +121,10 @@ class BackgroundPage {
     });
   }
 
-  attemptLogIn(username, password) {
+  attemptLogIn(username, password, useSslTunnel) {
     this.settings_.username = username;
     this.settings_.password = password;
+    this.settings_.sslTunnel = useSslTunnel;
     return this.getDashboardData_()
         .then(() => {
           if (!this.lastError_) {

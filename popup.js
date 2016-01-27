@@ -8,6 +8,7 @@ class CriticPopup {
     this.passwordElement_ = null;
     this.submitElement_ = null;
     this.errorElement_ = null;
+    this.sslCheckboxElement_ = null;
     this.formElement_ = null;
     EventHandler.register(
         'click', 'review',
@@ -36,11 +37,11 @@ class CriticPopup {
     chrome.runtime.getBackgroundPage(bgWindow => {
       document.body.cleanAppendTemplate(CriticPopup.Templates.loader());
       this.backgroundPage_ = bgWindow.background;
-      this.backgroundPage_.ready().then(() => this.init());
+      this.backgroundPage_.ready().then(() => this.init_());
     });
   }
 
-  init() {
+  init_() {
     this.updateMainView_();
     this.backgroundPage_.resetReadStatus();
   }
@@ -111,13 +112,15 @@ class CriticPopup {
 
   onLoggedOut_(errorText) {
     this.formElement_ =
-        document.body.cleanAppendTemplate(CriticPopup.Templates.loginView());
+        document.body.cleanAppendTemplate(CriticPopup.Templates.loginView(
+            this.backgroundPage_.settings.sslTunnel));
     this.usernameElement_ = this.formElement_.querySelector('#username');
     this.passwordElement_ = this.formElement_.querySelector('#password');
+    this.sslCheckboxElement_ = this.formElement_.querySelector('#ssl-tunnel');
     this.submitElement_ = this.formElement_.querySelector('#submit-button');
     this.errorElement_ = this.formElement_.querySelector('#error-text');
     this.formElement_.addEventListener('submit',
-                                       event => this.handleFormSubmit_(event));
+                                       event => this.handleLogin_(event));
     this.disableLoginForm_(false);
     this.errorElement_.textContent = errorText;
     setTimeout(() => this.errorElement_.textContent = '', 3000);
@@ -131,6 +134,7 @@ class CriticPopup {
   disableLoginForm_(disable) {
     this.usernameElement_.disabled = disable;
     this.passwordElement_.disabled = disable;
+    this.sslCheckboxElement_.disabled = disable;
     this.submitElement_.disabled = disable;
   }
 
@@ -222,7 +226,7 @@ class CriticPopup {
     }
   }
 
-  handleFormSubmit_(event) {
+  handleLogin_(event) {
     this.disableLoginForm_(true);
     this.usernameElement_.value =
         this.usernameElement_.value.replace(/@.+/, '');
@@ -230,7 +234,8 @@ class CriticPopup {
         document.body.appendTemplate(CriticPopup.Templates.loader());
     progressElement.classList.add('overlay');
     this.backgroundPage_.attemptLogIn(this.usernameElement_.value,
-                                      this.passwordElement_.value)
+                                      this.passwordElement_.value,
+                                      this.sslCheckboxElement_.checked)
         .then(() => {
           progressElement.remove();
           this.updateMainView_();
@@ -260,7 +265,7 @@ CriticPopup.Templates = class {
   static loader() {
     return ['div', {'class': 'loader'}, ['div', {'class': 'throbber-loader'}]];
   }
-  static loginView() {
+  static loginView(sslTunnelEnabled) {
     return [
       'form',
       {'id': 'login-form'},
@@ -268,6 +273,23 @@ CriticPopup.Templates = class {
       ['input', {'id': 'username'}],
       ['div', 'Password: '],
       ['input', {'id': 'password', 'type': 'password'}],
+      [
+        'div',
+        [
+          'label',
+          [
+            [
+              'input',
+              {
+                'type': 'checkbox',
+                'id': 'ssl-tunnel',
+                'checked': sslTunnelEnabled ? 'true' : null
+              }
+            ],
+            'Use SSL tunnel / not on Opera network'
+          ]
+        ]
+      ],
       ['input', {'type': 'submit', 'id': 'submit-button', 'value': 'Login'}],
       ['div', {'id': 'error-text'}],
     ];
