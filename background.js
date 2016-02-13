@@ -135,40 +135,29 @@ class BackgroundPage {
   }
 
   getDashboardData_() {
-    return this.request(`User/${this.settings_.username}/Dashboard`)
-        .then(data => {
-          if (this.lastError_) {
-            this.onRefreshError_();
-          } else {
-            this.loggedIn_ = true;
-            this.dashboardData_ = data;
-            this.processData_();
-          }
-        });
+    return this.requestData().then(data => {
+      if (this.lastError_) {
+        this.onRefreshError_();
+      } else {
+        this.loggedIn_ = true;
+        this.dashboardData_ = data;
+        this.processData_();
+      }
+    });
   }
 
   refreshData_() {
     return this.getDashboardData_().then(() => this.scheduleNextCheck_());
   }
 
-  // TODO(rchlodnicki): Pass array originally.
-  arrayFromObject(objectIn) {
-    let output = [];
-    for (let id in objectIn) {
-      output.push(id);
-    }
-    return output;
-  }
-
   processData_() {
-    let changesCount = this.dashboardData_.active.hasPendingChanges.length;
-    changesCount += this.dashboardData_.active.hasUnreadComments.length;
-    let acceptedArray =
-        this.arrayFromObject(this.dashboardData_.owned.accepted);
-    changesCount += acceptedArray.length;
-    this.state_.pending_ = this.dashboardData_.active.hasPendingChanges;
-    this.state_.unread_ = this.dashboardData_.active.hasUnreadComments;
-    this.state_.accepted_ = acceptedArray;
+    let data = this.dashboardData_;
+    this.state_.pending_ = data.active.hasPendingChanges;
+    this.state_.unread_ = data.active.hasUnreadComments;
+    this.state_.accepted_ = data.owned.accepted;
+    let changesCount = data.active.hasPendingChanges.length +
+                       data.active.hasUnreadComments.length +
+                       data.owned.accepted.length;
     chrome.browserAction.setBadgeText(
         {'text': changesCount ? String(changesCount) : ''});
     if (changesCount > 0) {
@@ -223,6 +212,11 @@ class BackgroundPage {
   openOpenIssuesUrl(reviewId) {
     let url = this.baseUrl_() + 'showcomments?review=' + reviewId +
               '&filter=open-issues';
+    this.openUrl_(url);
+  }
+
+  openOwnerReviewsUrl(owner) {
+    let url = this.baseUrl_() + 'search?qowner=%27' + owner + '%27';
     this.openUrl_(url);
   }
 
@@ -305,7 +299,7 @@ class BackgroundPage {
       }
       if (changes.accepted.length) {
         for (let id of changes.accepted) {
-          let review = this.dashboardData_.owned.accepted[id];
+          let review = this.dashboardData_.all[id];
           chrome.notifications.create(
               undefined,
               {
@@ -368,14 +362,15 @@ class BackgroundPage {
     this.onRefreshError_();
   }
 
-  request(path) {
+  requestData(path = '') {
     let headers = new Headers();
     headers.append(
         'Authorization',
         'Basic ' +
             window.btoa(unescape(encodeURIComponent(
                 this.settings_.username + ':' + this.settings_.password))));
-    return window.fetch(this.baseUrl_() + 'JSON/' + path, {headers})
+    return window.fetch(this.baseUrl_() + Constants.CRITIC_API_PATH + path,
+                        {headers})
         .then(response => {
           if (!response.ok) {
             this.lastError_ = response.statusText;

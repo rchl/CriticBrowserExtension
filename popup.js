@@ -23,6 +23,9 @@ class CriticPopup {
         'click', 'open-issues',
         (event, target) => this.handleOpenIssuesClick_(event, target));
     EventHandler.register(
+        'click', 'owner-name',
+        (event, target) => this.handleOwnerNameClick_(event, target));
+    EventHandler.register(
         'click', 'settings-open',
         (event, target) => this.handleSettingsOpenClick_(event, target));
     EventHandler.register(
@@ -60,51 +63,30 @@ class CriticPopup {
 
   onLoggedIn_() {
     let data = this.backgroundPage_.data;
+    let ownedAcceptedReviews = data.owned.accepted.map(id => data.all[id]);
+    let ownedPendingReviews = data.owned.pending.map(id => data.all[id]);
     let reviewsTemplate = [
-      this.createSectionTemplate_(data.owned.accepted, data, 'Owned accepted',
+      this.createSectionTemplate_(ownedAcceptedReviews, data, 'Owned accepted',
                                   'header-accepted'),
-      this.createSectionTemplate_(data.owned.pending, data, 'Owned pending',
+      this.createSectionTemplate_(ownedPendingReviews, data, 'Owned pending',
                                   'header-owned-pending'),
     ];
-    let seenIds = new Set();
-    for (let id in data.owned.accepted) {
-      seenIds.add(parseInt(id, 10));
-    }
-    for (let id in data.owned.pending) {
-      seenIds.add(parseInt(id, 10));
-    }
+    let seenIds = new Set(data.owned.accepted.concat(data.owned.pending));
     let pendingReviews = {};
-    if (data.active.hasPendingChanges.length) {
-      for (let id of data.active.hasPendingChanges) {
-        if (seenIds.has(id)) {
-          continue;
-        }
+    data.active.hasPendingChanges.forEach(id => {
+      if (!seenIds.has(id)) {
         seenIds.add(id);
         pendingReviews[id] = data.all[id];
       }
-    }
-    if (data.active.hasUnreadComments.length) {
-      for (let id of data.active.hasUnreadComments) {
-        if (seenIds.has(id)) {
-          continue;
-        }
+    });
+    data.active.hasUnreadComments.forEach(id => {
+      if (!seenIds.has(id)) {
         seenIds.add(id);
         pendingReviews[id] = data.all[id];
       }
-    }
+    });
     reviewsTemplate.push(this.createSectionTemplate_(
         pendingReviews, data, 'Pending', 'header-pending'));
-    let inactiveReviews = {};
-    if (data.inactive.isReviewer.length) {
-      for (let id of data.inactive.isReviewer) {
-        if (seenIds.has(id)) {
-          continue;
-        }
-        inactiveReviews[id] = data.all[id];
-      }
-    }
-    reviewsTemplate.push(this.createSectionTemplate_(
-        inactiveReviews, data, 'Inactive', 'header-inactive'));
     let mainTemplate = CriticPopup.Templates.mainView(reviewsTemplate);
     this.mainElement_ = document.body.cleanAppendTemplate(mainTemplate);
     this.highlightChanges_();
@@ -159,6 +141,11 @@ class CriticPopup {
   handleOpenIssuesClick_(event, target) {
     let reviewId = target.getAncestorAttr('data-review-id');
     this.backgroundPage_.openOpenIssuesUrl(reviewId);
+    event.cancelBubble = true;
+  }
+
+  handleOwnerNameClick_(event, target) {
+    this.backgroundPage_.openOwnerReviewsUrl(target.dataset.owner);
     event.cancelBubble = true;
   }
 
@@ -320,11 +307,6 @@ CriticPopup.Templates = class {
           {'class': 'settings', 'data-handler': 'settings-open'},
           'Settings'
         ],
-        [
-          'button',
-          {'class': 'logout', 'data-handler': 'logout'},
-          'Logout'
-        ]
       ]
     ];
   }
@@ -352,7 +334,12 @@ CriticPopup.Templates = class {
       {'id': 'settings-view'},
       ['h3', 'Settings'],
       ['div', settingsArray],
-      ['footer', ['button', {'data-handler': 'settings-close'}, 'Go back']],
+      [
+        'footer',
+        ['button', {'data-handler': 'settings-close'}, 'Go back'],
+        ['button', {'class': 'logout', 'data-handler': 'logout'}, 'Logout']
+      ],
+
     ];
   }
 
@@ -414,7 +401,19 @@ CriticPopup.Templates = class {
              'div',
              {'class': 'second-review-line'},
              ['span', 'r/' + review.id],
-             ['span', 'Owner: ' + review.owners.join(', ')],
+             [
+               'span',
+               'Owner: ',
+               review.owners.map(owner => [
+                 'span',
+                 {
+                   'class': 'owner-name',
+                   'data-handler': 'owner-name',
+                   'data-owner': owner.name,
+                 },
+                 owner.fullname
+               ]),
+             ],
              (review.progress.openIssues ?
                   [
                     'span',

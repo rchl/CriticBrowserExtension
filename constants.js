@@ -20,6 +20,7 @@ class Constants {
 Constants.CRITIC_BASE_URL = 'https://critic.oslo.osa/';
 Constants.CRITIC_DEV_BASE_URL = 'https://critic-dev.oslo.osa/';
 Constants.CRITIC_SSL_TUNNEL_BASE_URL = 'https://ssl.opera.com:8128/';
+Constants.CRITIC_API_PATH = 'JsonDashboard/';
 Constants.BADGE_COLOR_ACTIVE = '#ff0000';
 Constants.BADGE_COLOR_INACTIVE = '#222222';
 Constants.REFRESH_INTERVAL = 2 * 60 * 1000;  // 2 minutes.

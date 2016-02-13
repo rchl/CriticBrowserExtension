@@ -128,6 +128,14 @@ footer {
   text-align: right;
 }
 
+.owner-name {
+  cursor: pointer;
+}
+
+.owner-name:hover {
+  color: #333;
+}
+
 .line-count, .unread-count {
   float: right;
   margin-left: 1em;
