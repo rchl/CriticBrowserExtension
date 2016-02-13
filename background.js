@@ -171,7 +171,7 @@ class BackgroundPage {
 
   onRefreshError_() {
     this.dashboardData_ = null;
-    chrome.browserAction.setBadgeText({'text': ''});
+    chrome.browserAction.setBadgeText({'text': 'ERR'});
   }
 
   scheduleNextCheck_() {
