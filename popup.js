@@ -66,10 +66,10 @@ class CriticPopup {
     let ownedAcceptedReviews = data.owned.accepted.map(id => data.all[id]);
     let ownedPendingReviews = data.owned.pending.map(id => data.all[id]);
     let reviewsTemplate = [
-      this.createSectionTemplate_(ownedAcceptedReviews, data, 'Owned accepted',
-                                  'header-accepted'),
-      this.createSectionTemplate_(ownedPendingReviews, data, 'Owned pending',
-                                  'header-owned-pending'),
+      this.createSectionTemplate_(
+          ownedAcceptedReviews, data, 'Owned accepted', 'header-accepted'),
+      this.createSectionTemplate_(
+          ownedPendingReviews, data, 'Owned pending', 'header-owned-pending'),
     ];
     let seenIds = new Set(data.owned.accepted.concat(data.owned.pending));
     let pendingReviews = {};
@@ -85,24 +85,25 @@ class CriticPopup {
         pendingReviews[id] = data.all[id];
       }
     });
-    reviewsTemplate.push(this.createSectionTemplate_(
-        pendingReviews, data, 'Pending', 'header-pending'));
+    reviewsTemplate.push(
+        this.createSectionTemplate_(
+            pendingReviews, data, 'Pending', 'header-pending'));
     let mainTemplate = CriticPopup.Templates.mainView(reviewsTemplate);
     this.mainElement_ = document.body.cleanAppendTemplate(mainTemplate);
     this.highlightChanges_();
   }
 
   onLoggedOut_(errorText) {
-    this.formElement_ =
-        document.body.cleanAppendTemplate(CriticPopup.Templates.loginView(
+    this.formElement_ = document.body.cleanAppendTemplate(
+        CriticPopup.Templates.loginView(
             this.backgroundPage_.settings.sslTunnel));
     this.usernameElement_ = this.formElement_.querySelector('#username');
     this.passwordElement_ = this.formElement_.querySelector('#password');
     this.sslCheckboxElement_ = this.formElement_.querySelector('#ssl-tunnel');
     this.submitElement_ = this.formElement_.querySelector('#submit-button');
     this.errorElement_ = this.formElement_.querySelector('#error-text');
-    this.formElement_.addEventListener('submit',
-                                       event => this.handleLogin_(event));
+    this.formElement_.addEventListener(
+        'submit', event => this.handleLogin_(event));
     this.disableLoginForm_(false);
     this.errorElement_.textContent = errorText;
     setTimeout(() => this.errorElement_.textContent = '', 3000);
@@ -178,9 +179,10 @@ class CriticPopup {
     let template = [];
     for (let id in reviews) {
       let review = reviews[id];
-      template.push(CriticPopup.Templates.review(
-          review, this.getPendingChanges_(review.id, data),
-          this.backgroundPage_.settings));
+      template.push(
+          CriticPopup.Templates.review(
+              review, this.getPendingChanges_(review.id, data),
+              this.backgroundPage_.settings));
     }
     if (!template.length) {
       return [];
@@ -220,9 +222,10 @@ class CriticPopup {
     let progressElement =
         document.body.appendTemplate(CriticPopup.Templates.loader());
     progressElement.classList.add('overlay');
-    this.backgroundPage_.attemptLogIn(this.usernameElement_.value,
-                                      this.passwordElement_.value,
-                                      this.sslCheckboxElement_.checked)
+    this.backgroundPage_
+        .attemptLogIn(
+            this.usernameElement_.value, this.passwordElement_.value,
+            this.sslCheckboxElement_.checked)
         .then(() => {
           progressElement.remove();
           this.updateMainView_();
@@ -243,7 +246,7 @@ class CriticPopup {
     }
     return {
       'lineCount': lineCount ? String(lineCount) : undefined,
-      'unreadCount': unreadCount ? String(unreadCount) : undefined,
+          'unreadCount': unreadCount ? String(unreadCount) : undefined,
     }
   }
 };
@@ -266,8 +269,7 @@ CriticPopup.Templates = class {
           'label',
           [
             [
-              'input',
-              {
+              'input', {
                 'type': 'checkbox',
                 'id': 'ssl-tunnel',
                 'checked': sslTunnelEnabled ? 'true' : null
@@ -284,12 +286,9 @@ CriticPopup.Templates = class {
 
   static loggedInErrorView(errorText) {
     return [
-      'div',
-      {'id': 'main-view'},
-      ['h3', {'class': 'header-error'}, errorText],
+      'div', {'id': 'main-view'}, ['h3', {'class': 'header-error'}, errorText],
       [
-        'footer',
-        ['span'],
+        'footer', ['span'],
         ['button', {'class': 'logout', 'data-handler': 'logout'}, 'Logout']
       ]
     ];
@@ -297,14 +296,11 @@ CriticPopup.Templates = class {
 
   static mainView(reviewsTemplate) {
     return [
-      'div',
-      {'id': 'main-view'},
-      reviewsTemplate,
+      'div', {'id': 'main-view'}, reviewsTemplate,
       [
         'footer',
         [
-          'button',
-          {'class': 'settings', 'data-handler': 'settings-open'},
+          'button', {'class': 'settings', 'data-handler': 'settings-open'},
           'Settings'
         ],
       ]
@@ -335,8 +331,7 @@ CriticPopup.Templates = class {
       ['h3', 'Settings'],
       ['div', settingsArray],
       [
-        'footer',
-        ['button', {'data-handler': 'settings-close'}, 'Go back'],
+        'footer', ['button', {'data-handler': 'settings-close'}, 'Go back'],
         ['button', {'class': 'logout', 'data-handler': 'logout'}, 'Logout']
       ],
 
@@ -354,8 +349,7 @@ CriticPopup.Templates = class {
       unreadCount = String(pendingChanges.unreadCount);
     }
     return [
-      'div',
-      {
+      'div', {
         'class': 'review pending review-' + review.id,
         'data-review-id': String(review.id),
       },
@@ -366,8 +360,7 @@ CriticPopup.Templates = class {
           'data-handler': 'review',
         },
         [
-          'span',
-          {'class': 'link black grow ellipsis', 'tabIndex': '1'},
+          'span', {'class': 'link black grow ellipsis', 'tabIndex': '1'},
           review.summary
         ],
         [
@@ -404,15 +397,13 @@ CriticPopup.Templates = class {
              [
                'span',
                'Owner: ',
-               review.owners.map(owner => [
-                 'span',
-                 {
-                   'class': 'owner-name',
-                   'data-handler': 'owner-name',
-                   'data-owner': owner.name,
-                 },
-                 owner.fullname
-               ]),
+               review.owners.map(
+                   owner => ['span', {
+                     'class': 'owner-name',
+                     'data-handler': 'owner-name',
+                     'data-owner': owner.name,
+                   },
+                             owner.fullname]),
              ],
              (review.progress.openIssues ?
                   [
@@ -429,8 +420,7 @@ CriticPopup.Templates = class {
       (review.progress.accepted ?
            [] :
            [
-             'div',
-             {
+             'div', {
                'class': 'progress',
                'style': 'background-size: ' + progress + '% 100%'
              }
@@ -439,5 +429,5 @@ CriticPopup.Templates = class {
   }
 };
 
-document.addEventListener('DOMContentLoaded',
-                          () => window.criticPopup = new CriticPopup());
+document.addEventListener(
+    'DOMContentLoaded', () => window.criticPopup = new CriticPopup());

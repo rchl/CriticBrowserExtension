@@ -48,16 +48,14 @@ class BackgroundPage {
 
       hasNewSinceLastCheck() {
         return this.getNewItems_(this.lastCheckUnread_, this.unread_).length ||
-               this.getNewItems_(this.lastCheckPending_, this.pending_)
-                   .length ||
-               this.getNewItems_(this.lastCheckAccepted_, this.accepted_)
-                   .length;
+            this.getNewItems_(this.lastCheckPending_, this.pending_).length ||
+            this.getNewItems_(this.lastCheckAccepted_, this.accepted_).length;
       }
 
       hasNewSinceLastSeen() {
         return this.getNewItems_(this.lastSeenUnread_, this.unread_).length ||
-               this.getNewItems_(this.lastSeenPending_, this.pending_).length ||
-               this.getNewItems_(this.lastSeenAccepted_, this.accepted_).length;
+            this.getNewItems_(this.lastSeenPending_, this.pending_).length ||
+            this.getNewItems_(this.lastSeenAccepted_, this.accepted_).length;
       }
 
       getNewItems_(oldArray, newArray) {
@@ -125,13 +123,12 @@ class BackgroundPage {
     this.settings_.username = username;
     this.settings_.password = password;
     this.settings_.sslTunnel = useSslTunnel;
-    return this.getDashboardData_()
-        .then(() => {
-          if (!this.lastError_) {
-            this.saveSettings_();
-            this.scheduleNextCheck_();
-          }
-        });
+    return this.getDashboardData_().then(() => {
+      if (!this.lastError_) {
+        this.saveSettings_();
+        this.scheduleNextCheck_();
+      }
+    });
   }
 
   getDashboardData_() {
@@ -156,8 +153,7 @@ class BackgroundPage {
     this.state_.unread_ = data.active.hasUnreadComments;
     this.state_.accepted_ = data.owned.accepted;
     let changesCount = data.active.hasPendingChanges.length +
-                       data.active.hasUnreadComments.length +
-                       data.owned.accepted.length;
+        data.active.hasUnreadComments.length + data.owned.accepted.length;
     chrome.browserAction.setBadgeText(
         {'text': changesCount ? String(changesCount) : ''});
     if (changesCount > 0) {
@@ -180,9 +176,7 @@ class BackgroundPage {
         setTimeout(() => this.refreshData_(), Constants.REFRESH_INTERVAL);
   }
 
-  saveSettings_() {
-    chrome.storage.local.set(this.settings_);
-  }
+  saveSettings_() { chrome.storage.local.set(this.settings_); }
 
   resetReadStatus() {
     this.state_.markAsSeen();
@@ -211,7 +205,7 @@ class BackgroundPage {
 
   openOpenIssuesUrl(reviewId) {
     let url = this.baseUrl_() + 'showcomments?review=' + reviewId +
-              '&filter=open-issues';
+        '&filter=open-issues';
     this.openUrl_(url);
   }
 
@@ -224,36 +218,38 @@ class BackgroundPage {
 
   pendingChangesUrl_(reviewId) {
     return this.baseUrl_() + 'showcommit?review=' + reviewId +
-           '&filter=pending';
+        '&filter=pending';
   }
 
   unreadCommentsUrl_(reviewId) {
     return this.baseUrl_() + 'showcomments?review=' + reviewId +
-           '&filter=toread';
+        '&filter=toread';
   }
 
   openUrl_(url) {
-    chrome.tabs.query({url}, tabs => {
-      if (tabs.length) {
-        chrome.tabs.update(tabs[0].id, {'url': url, 'active': true});
-      } else {
-        chrome.tabs.create({url});
-      }
-    });
+    chrome.tabs.query(
+        {url},
+        tabs => {
+          if (tabs.length) {
+            chrome.tabs.update(tabs[0].id, {'url': url, 'active': true});
+          } else {
+            chrome.tabs.create({url});
+          }
+        });
   }
 
   baseUrl_() {
     return this.settings_.sslTunnel ?
-               Constants.CRITIC_SSL_TUNNEL_BASE_URL :
-               this.settings_.devLinks ? Constants.CRITIC_DEV_BASE_URL :
-                                         Constants.CRITIC_BASE_URL;
+        Constants.CRITIC_SSL_TUNNEL_BASE_URL :
+        this.settings_.devLinks ? Constants.CRITIC_DEV_BASE_URL :
+                                  Constants.CRITIC_BASE_URL;
   }
 
   updateBadgeColor_() {
     chrome.browserAction.setBadgeBackgroundColor({
       'color': this.state_.hasNewSinceLastSeen() ?
-                   Constants.BADGE_COLOR_ACTIVE :
-                   Constants.BADGE_COLOR_INACTIVE
+          Constants.BADGE_COLOR_ACTIVE :
+          Constants.BADGE_COLOR_INACTIVE
     });
   }
 
@@ -264,8 +260,7 @@ class BackgroundPage {
         for (let id of changes.pending) {
           let review = this.dashboardData_.all[id];
           chrome.notifications.create(
-              undefined,
-              {
+              undefined, {
                 'type': 'basic',
                 'iconUrl': 'images/128.png',
                 'title': 'New changes',
@@ -283,8 +278,7 @@ class BackgroundPage {
           let review = this.dashboardData_.all[id];
           let unreadCount = this.dashboardData_.active.unreadComments[id];
           chrome.notifications.create(
-              undefined,
-              {
+              undefined, {
                 'type': 'basic',
                 'iconUrl': 'images/128.png',
                 'title': 'Unread comments (' + unreadCount + ')',
@@ -301,8 +295,7 @@ class BackgroundPage {
         for (let id of changes.accepted) {
           let review = this.dashboardData_.all[id];
           chrome.notifications.create(
-              undefined,
-              {
+              undefined, {
                 'type': 'basic',
                 'iconUrl': 'images/128.png',
                 'title': 'Accepted',
@@ -365,12 +358,14 @@ class BackgroundPage {
   requestData(path = '') {
     let headers = new Headers();
     headers.append(
-        'Authorization',
-        'Basic ' +
-            window.btoa(unescape(encodeURIComponent(
-                this.settings_.username + ':' + this.settings_.password))));
-    return window.fetch(this.baseUrl_() + Constants.CRITIC_API_PATH + path,
-                        {headers})
+        'Authorization', 'Basic ' +
+            window.btoa(
+                unescape(
+                    encodeURIComponent(
+                        this.settings_.username + ':' +
+                        this.settings_.password))));
+    return window
+        .fetch(this.baseUrl_() + Constants.CRITIC_API_PATH + path, {headers})
         .then(response => {
           if (!response.ok) {
             this.lastError_ = response.statusText;
