@@ -138,6 +138,6 @@ class MultiValueIntegerSetting extends BaseSetting {
       };
       return ['label', ['input', attributes], ['span', valueArray[1]]];
     });
-    return ['div', ['div', `${this.title_}:`], values];
+    return ['div', ['h4', `${this.title_}:`], values];
   }
 }
