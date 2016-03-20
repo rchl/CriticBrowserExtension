@@ -35,10 +35,10 @@ class CriticPopup {
         'click', 'logout',
         (event, target) => this.handleLogoutClick_(event, target));
     chrome.runtime.getBackgroundPage(bgWindow => {
-      document.body.cleanAppendTemplate(CriticPopup.Templates.loader());
       this.backgroundPage_ = bgWindow.background;
       this.backgroundPage_.ready().then(() => this.init_());
     });
+    document.body.cleanAppendTemplate(CriticPopup.Templates.loader());
   }
 
   init_() {
