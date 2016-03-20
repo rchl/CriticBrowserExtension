@@ -7,70 +7,7 @@ class BackgroundPage {
     this.lastError_ = '';
     this.dashboardData_ = null;
     this.refreshTimeout_ = null;
-    this.state_ = new class {
-      constructor() {
-        this.unread_ = [];
-        this.lastSeenUnread_ = [];
-        this.lastCheckUnread_ = [];
-        this.pending_ = [];
-        this.lastSeenPending_ = [];
-        this.lastCheckPending_ = [];
-        this.accepted_ = [];
-        this.lastSeenAccepted_ = [];
-        this.lastCheckAccepted_ = [];
-      }
-
-      getChangesFromLastCheck() {
-        return {
-          'unread': this.getNewItems_(this.lastCheckUnread_, this.unread_),
-          'pending': this.getNewItems_(this.lastCheckPending_, this.pending_),
-          'accepted':
-              this.getNewItems_(this.lastCheckAccepted_, this.accepted_),
-        };
-      }
-
-      getChangesFromLastSeen() {
-        return {
-          'unread': this.getNewItems_(this.lastSeenUnread_, this.unread_),
-          'pending': this.getNewItems_(this.lastSeenPending_, this.pending_),
-          'accepted': this.getNewItems_(this.lastSeenAccepted_, this.accepted_),
-        };
-      }
-
-      hasNewSinceLastCheck() {
-        return this.getNewItems_(this.lastCheckUnread_, this.unread_).length ||
-            this.getNewItems_(this.lastCheckPending_, this.pending_).length ||
-            this.getNewItems_(this.lastCheckAccepted_, this.accepted_).length;
-      }
-
-      hasNewSinceLastSeen() {
-        return this.getNewItems_(this.lastSeenUnread_, this.unread_).length ||
-            this.getNewItems_(this.lastSeenPending_, this.pending_).length ||
-            this.getNewItems_(this.lastSeenAccepted_, this.accepted_).length;
-      }
-
-      getNewItems_(oldArray, newArray) {
-        return newArray.filter(item => oldArray.indexOf(item) === -1);
-      }
-
-      markAsLastCheckDone() {
-        this.lastCheckUnread_ = this.unread_;
-        this.lastCheckPending_ = this.pending_;
-        this.lastCheckAccepted_ = this.accepted_;
-      }
-
-      markAsSeen() {
-        this.lastSeenUnread_ = this.unread_;
-        this.lastSeenPending_ = this.pending_;
-        this.lastSeenAccepted_ = this.accepted_;
-      }
-
-      markUnreadAsSeen(reviewId) { this.lastSeenUnread_.push(reviewId); }
-
-      markPendingAsSeen(reviewId) { this.lastSeenPending_.push(reviewId); }
-
-      markAcceptedAsSeen(reviewId) { this.lastSeenAccepted_.push(reviewId); }
-    };
+    this.state_ = new StateHandler();
     this.notificationsUrlMap_ = new Map();
     chrome.notifications.onClicked.addListener(
         id => this.onNotificationClicked_(id));
@@ -167,9 +104,11 @@ class BackgroundPage {
 
   processData_() {
     let data = this.dashboardData_;
-    this.state_.pending_ = data.active.hasPendingChanges;
-    this.state_.unread_ = data.active.hasUnreadComments;
-    this.state_.accepted_ = data.owned.accepted;
+    this.state_.updateState({
+      'unread': data.active.hasUnreadComments,
+      'pending': data.active.hasPendingChanges,
+      'accepted': data.owned.accepted,
+    });
     let changesCount = data.active.hasPendingChanges.length +
         data.active.hasUnreadComments.length + data.owned.accepted.length;
     chrome.browserAction.setBadgeText(
@@ -276,55 +215,40 @@ class BackgroundPage {
   triggerNotifications_() {
     if (this.state_.hasNewSinceLastCheck()) {
       let changes = this.state_.getChangesFromLastCheck();
-      if (changes.pending.length) {
-        for (let id of changes.pending) {
+      for (let key of Object.keys(changes)) {
+        for (let id of changes[key]) {
           let review = this.dashboardData_.all[id];
+          let title;
+          let type;
+          switch (key) {
+            case 'unread':
+              let unreadCount = this.dashboardData_.active.unreadComments[id];
+              title = 'Unread comments (' + unreadCount + ')';
+              type = BackgroundPage.NOTIFICATION_TYPE_COMMENTS;
+              break;
+            case 'pending':
+              title = 'New changes';
+              type = BackgroundPage.NOTIFICATION_TYPE_LINES;
+              break;
+            case 'accepted':
+              title = 'Accepted';
+              type = BackgroundPage.NOTIFICATION_TYPE_REVIEW;
+              break;
+            default:
+              console.error('Unexpected key in changes object!');
+              break;
+          }
           chrome.notifications.create(
               undefined, {
                 'type': 'basic',
                 'iconUrl': 'images/128.png',
-                'title': 'New changes',
+                'title': title,
                 'message': review.summary,
                 'isClickable': true,
               },
               id => this.notificationsUrlMap_.set(id, {
                 'reviewId': review.id,
-                'type': BackgroundPage.NOTIFICATION_TYPE_LINES,
-              }));
-        }
-      }
-      if (changes.unread.length) {
-        for (let id of changes.unread) {
-          let review = this.dashboardData_.all[id];
-          let unreadCount = this.dashboardData_.active.unreadComments[id];
-          chrome.notifications.create(
-              undefined, {
-                'type': 'basic',
-                'iconUrl': 'images/128.png',
-                'title': 'Unread comments (' + unreadCount + ')',
-                'message': review.summary,
-                'isClickable': true,
-              },
-              id => this.notificationsUrlMap_.set(id, {
-                'reviewId': review.id,
-                'type': BackgroundPage.NOTIFICATION_TYPE_COMMENTS,
-              }));
-        }
-      }
-      if (changes.accepted.length) {
-        for (let id of changes.accepted) {
-          let review = this.dashboardData_.all[id];
-          chrome.notifications.create(
-              undefined, {
-                'type': 'basic',
-                'iconUrl': 'images/128.png',
-                'title': 'Accepted',
-                'message': review.summary,
-                'isClickable': true,
-              },
-              id => this.notificationsUrlMap_.set(id, {
-                'reviewId': review.id,
-                'type': BackgroundPage.NOTIFICATION_TYPE_REVIEW,
+                'type': type,
               }));
         }
       }
