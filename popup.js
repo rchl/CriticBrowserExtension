@@ -2,9 +2,14 @@
 
 class CriticPopup {
   constructor() {
+    this.contextMenuManager_ =
+        ContextMenuManager.createForRoot(document, {'debuggingEnabled': true});
     this.backgroundPage_ = null;
     this.mainElement_ = null;
     this.errorElement_ = null;
+    this.contextMenuManager_.register(
+        'review',
+        (event, target) => this.handleReviewContextMenu_(event, target));
     EventHandler.register(
         'click', 'login', (event, target) => this.handleLogin_(event, target));
     EventHandler.register(
@@ -19,9 +24,6 @@ class CriticPopup {
     EventHandler.register(
         'click', 'open-issues',
         (event, target) => this.handleOpenIssuesClick_(event, target));
-    EventHandler.register(
-        'click', 'owner-name',
-        (event, target) => this.handleOwnerNameClick_(event, target));
     EventHandler.register(
         'click', 'settings-open',
         (event, target) => this.handleSettingsOpenClick_(event, target));
@@ -128,11 +130,6 @@ class CriticPopup {
     event.cancelBubble = true;
   }
 
-  handleOwnerNameClick_(event, target) {
-    this.backgroundPage_.openOwnerReviewsUrl(target.dataset.owner);
-    event.cancelBubble = true;
-  }
-
   handleSettingsOpenClick_(event, target) {
     document.body.cleanAppendTemplate(
         CriticPopup.Templates.settingsView(this.backgroundPage_.settings));
@@ -206,6 +203,10 @@ class CriticPopup {
       element.classList.add('highlight');
       setTimeout(() => element.classList.remove('highlight'), 1000);
     }
+  }
+
+  handleReviewContextMenu_(event, target) {
+    return new ReviewContextMenu(target, this.backgroundPage_).getItems();
   }
 
   handleLogin_(event, target) {
@@ -334,9 +335,13 @@ CriticPopup.Templates = class {
     if (pendingChanges.unreadCount) {
       unreadCount = String(pendingChanges.unreadCount);
     }
+    let owners = review.owners.map(owner => owner.name).join('|');
+    let ownersFullname = review.owners.map(owner => owner.fullname).join(', ');
     return [
       'div', {
         'class': 'review pending review-' + review.id,
+        'data-menu': 'review',
+        'data-owners': owners,
         'data-review-id': String(review.id),
       },
       [
@@ -380,17 +385,7 @@ CriticPopup.Templates = class {
              'div',
              {'class': 'second-review-line'},
              ['span', 'r/' + review.id],
-             [
-               'span',
-               'Owner: ',
-               review.owners.map(
-                   owner => ['span', {
-                     'class': 'owner-name',
-                     'data-handler': 'owner-name',
-                     'data-owner': owner.name,
-                   },
-                             owner.fullname]),
-             ],
+             ['span', `Owner: ${ownersFullname}`],
              (review.progress.openIssues ?
                   [
                     'span',

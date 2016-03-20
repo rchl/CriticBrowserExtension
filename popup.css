@@ -108,18 +108,18 @@ footer {
   transition: background-color 2s;
 }
 
-.review:hover {
-  outline: auto;
-}
-
 .review-link {
-  cursor: pointer;
   flex-grow: 1;
 }
 
 .link {
   color: blue;
   cursor: pointer;
+  outline: none;
+}
+
+.link:hover {
+  color: hsla(39,70%,50%,1);
 }
 
 .gray {

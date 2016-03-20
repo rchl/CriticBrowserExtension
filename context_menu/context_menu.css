@@ -1,0 +1,161 @@
+#contextmenu {
+  background-color: hsl(0, 0%, 94%);
+  background-image: linear-gradient(90deg, transparent 0,
+                                           transparent 27px,
+                                           hsl(180, 2%, 89%) 27px,
+                                           hsl(180, 2%, 89%) 28px,
+                                           white 28px,
+                                           white 29px,
+                                           transparent 29px);
+  background-size: 30px 100%;
+  background-repeat: no-repeat;
+  border: 1px solid hsl(0, 0%, 63%);
+  box-shadow: inset 0 0 0 1px hsl(0, 0%, 94%),
+              2px 2px 3px hsla(0, 0%, 10%, 0.6);
+  color: hsl(0, 0%, 18%);
+  display: none;
+  display: inline-block;
+  font: menu;
+  list-style-type: none;
+  margin: 0;
+  max-width: 400px;
+  min-width: 150px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 4px 0;
+  position: fixed;
+  visibility: hidden;
+  z-index: 1002;
+}
+
+html[dir="rtl"]:not(.mac) #contextmenu {
+  background-position-x: -56px;
+}
+
+.mac #contextmenu {
+  background-color: hsla(0, 0%, 100%, 0.94);
+  background-image: none;
+  border: none;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px hsla(0, 0%, 100%, 0.9),
+              0 0 0 1px hsla(0, 0%, 39%, 0.07),
+              0 3px 6px 0 hsla(0, 0%, 39%, 0.45),
+              0 3px 0 1px hsla(0, 0%, 39%, 0.05),
+              0 10px 26px 1px hsla(0, 0%, 10%, 0.22);
+
+  color: black;
+  /* Setting the font size should not be needed, but on Mac OS
+  font: menu sets font-size to 13px, which is wrong. */
+  font-size: 14px;
+}
+
+#contextmenu::selection {
+  background: none;
+}
+
+#contextmenu li {
+  border-radius: 2px;
+  cursor: default;
+  line-height: 18px;
+  margin: 0 3px;
+  overflow: hidden;
+  padding: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-padding-end: 50px;
+}
+
+.mac #contextmenu li {
+  border-radius: 0;
+  line-height: 15px;
+  margin: 0;
+  padding: 2px;
+  -webkit-padding-start: 5px;
+  -webkit-padding-end: 20px;
+}
+
+#contextmenu li.separator {
+  margin: 0;
+  padding: 3px 0 4px;
+  -webkit-padding-start: 28px;
+  -webkit-padding-end: 0;
+}
+
+.mac #contextmenu li.separator {
+  padding: 3px 0 4px;
+}
+
+#contextmenu li.disabled {
+  color: hsl(0, 0%, 48%);
+  -webkit-filter: none;
+}
+
+.mac #contextmenu li.disabled {
+  color: hsl(0, 0%, 67%);
+}
+
+#contextmenu li:not(.separator):not(.disabled):hover {
+  background-image: linear-gradient(180deg, hsla(213, 82%, 83%, 0.05) 0,
+                                            hsla(213, 82%, 83%, 0.2) 100%);
+  box-shadow: inset 0 0 1px 1px hsla(0, 0%, 100%, 0.6),
+              0 0 0 1px hsl(213, 82%, 83%);
+}
+
+.mac #contextmenu li:not(.separator):not(.disabled):hover {
+  background-image: linear-gradient(180deg, hsl(234, 78%, 67%) 0,
+                                            hsl(234, 78%, 67%) 1px,
+                                            hsl(234, 88%, 71%) 1px,
+                                            hsl(236, 89%, 61%) 18px,
+                                            hsl(237, 81%, 57%) 18px,
+                                            hsl(237, 81%, 57%) 19px);
+  box-shadow: none;
+  color: hsl(0, 0%, 100%);
+}
+
+#contextmenu li:not(.separator):not(.disabled):active {
+  background-color: hsl(220, 79%, 64%);
+  color: hsl(0, 0%, 100%);
+}
+
+#contextmenu hr {
+  background-color: hsla(0, 0%, 0%, 0.12);
+  border: none;
+  box-shadow: 0 1px white;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* This is now general menu stuff, and should be moved to a menu.css */
+
+.menu .menu-icon {
+  display: inline-block;
+  height: 9px;
+  margin: 0;
+  overflow: hidden;
+  text-align: center;
+  vertical-align: middle;
+  width: 22px;
+  -webkit-margin-end: 6px;
+}
+
+.mac .menu .menu-icon {
+  width: 10px;
+}
+
+.menu .check {
+  background: transparent url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAJCAQAAAChr3WYAAAAXUlEQVQIW2NgQAPGPMYt6EKKxpeMD6AKcRqfN/5vfAZVcCZQ6L/xMQjHybgISNqAhRpBAmzGS4HMn8bSYK11ME0GxseA3KtAPB9uElj1OqDQeWM2JEGw8ApjXRgPAMbgILM3V0GUAAAAAElFTkSuQmCC") 50% no-repeat;
+}
+
+.menu li:not(.disabled):active .check {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAJCAQAAAChr3WYAAAAXUlEQVQIW2NgQAP/ef63oAsp/r/0/wCqEOf/8////z+DKjjzPwgcg3Cc/hcBSRuwUCNIgO3/UiDz539psNY6mCaD/8eA3KtAPB9uElj1OqDQ+f9sSIJg4RX/dWE8AIy1QV9AmYd4AAAAAElFTkSuQmCC");
+}
+
+.menu .radio {
+  background: transparent url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAQAAABKxSfDAAAAMklEQVQIHWMw5jSebPwECFuM2RiMpxn/h8J2BuNvcM5zNM5kuEwvA9CAOcZvgXCmMScASvIjI0IsoS8AAAAASUVORK5CYII=") 50% no-repeat;
+}
+
+.menu li:not(.disabled):active .radio {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAQAAABKxSfDAAAAMklEQVQIW2P4z/l/8v8nQNjyn43h/7T/MNDO8P8bnPMcjTMZLtPLADRgzv+3QDjzPycAuFY/06fAu8wAAAAASUVORK5CYII=");
+}
