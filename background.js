@@ -2,15 +2,7 @@
 
 class BackgroundPage {
   constructor() {
-    // When adding new setting also add description in constants.js, if setting
-    // is to be exposed.
-    this.settings_ = {
-      'token': '',
-      'notifications': true,
-      'sslTunnel': false,
-      'devLinks': false,
-      'singleLine': false,
-    };
+    this.settings_ = new Settings();
     this.loggedIn_ = false;
     this.lastError_ = '';
     this.dashboardData_ = null;
@@ -110,8 +102,9 @@ class BackgroundPage {
   get lastError() { return this.lastError_; }
 
   init_() {
-    return this.readSettings_().then(() => {
-      this.loggedIn_ = this.settings_.token;
+    return this.settings_.ready().then(() => {
+      this.loggedIn_ =
+          Boolean(this.settings_.getValue(Constants.PREFNAME_TOKEN));
       if (this.loggedIn_) {
         return this.refreshData_();
       }
@@ -119,18 +112,7 @@ class BackgroundPage {
   }
 
   openTokenPage(loginMode) {
-    if (loginMode === Constants.LOGIN_MODE_CRITIC_STABLE_SSL) {
-      this.settings_.sslTunnel = true;
-      this.settings_.devLinks = false;
-    } else if (loginMode === Constants.LOGIN_MODE_CRITIC_DEV) {
-      this.settings_.sslTunnel = false;
-      this.settings_.devLinks = true;
-    } else {
-      this.settings_.sslTunnel = false;
-      this.settings_.devLinks = false;
-    }
-    this.saveSettings_();
-
+    this.setSetting(Constants.PREFNAME_LOGIN_MODE, loginMode);
     let url = `${this.baseUrl_()}${Constants.CRITIC_TOKEN_PATH}`;
     new Promise(resolve => chrome.tabs.create({url}, resolve))
         .then(tab => {
@@ -158,10 +140,10 @@ class BackgroundPage {
   }
 
   handleLoginFromInjectedScript_(token) {
-    this.settings_.token = token;
+    this.settings_.setValue(Constants.PREFNAME_TOKEN, token);
     return this.getDashboardData_().then(() => {
       if (!this.lastError_) {
-        this.saveSettings_();
+        this.settings_.save();
         this.scheduleNextCheck_();
       }
     });
@@ -194,7 +176,7 @@ class BackgroundPage {
         {'text': changesCount ? String(changesCount) : ''});
     if (changesCount > 0) {
       this.updateBadgeColor_();
-      if (this.settings_.notifications) {
+      if (this.settings_.getValue(Constants.PREFNAME_NOTIFICATIONS)) {
         this.triggerNotifications_();
       }
     }
@@ -212,8 +194,6 @@ class BackgroundPage {
         setTimeout(() => this.refreshData_(), Constants.REFRESH_INTERVAL);
   }
 
-  saveSettings_() { chrome.storage.local.set(this.settings_); }
-
   resetReadStatus() {
     this.state_.markAsSeen();
     if (this.loggedIn_ && !this.lastError_) {
@@ -222,8 +202,8 @@ class BackgroundPage {
   }
 
   setSetting(name, value) {
-    this.settings_[name] = value;
-    this.saveSettings_();
+    this.settings_.setValue(name, value);
+    this.settings_.save();
   }
 
   openReviewUrl(reviewId) { this.openUrl_(this.reviewUrl_(reviewId)); }
@@ -275,10 +255,14 @@ class BackgroundPage {
   }
 
   baseUrl_() {
-    return this.settings_.sslTunnel ?
-        Constants.CRITIC_SSL_TUNNEL_BASE_URL :
-        this.settings_.devLinks ? Constants.CRITIC_DEV_BASE_URL :
-                                  Constants.CRITIC_BASE_URL;
+    let baseUrl = Constants.CRITIC_BASE_URL;
+    let loginMode = this.settings_.getValue(Constants.PREFNAME_LOGIN_MODE);
+    if (loginMode === Constants.LOGIN_MODE_CRITIC_STABLE_SSL) {
+      baseUrl = Constants.CRITIC_SSL_TUNNEL_BASE_URL;
+    } else if (loginMode === Constants.LOGIN_MODE_CRITIC_DEV) {
+      baseUrl = Constants.CRITIC_DEV_BASE_URL;
+    }
+    return baseUrl;
   }
 
   updateBadgeColor_() {
@@ -372,27 +356,16 @@ class BackgroundPage {
     chrome.windows.update(chrome.windows.WINDOW_ID_CURRENT, {'focused': true});
   }
 
-  readSettings_() {
-    return new Promise(resolve => {
-      chrome.storage.local.get(this.settings_, values => {
-        for (let name in values) {
-          this.settings_[name] = values[name];
-        }
-        resolve();
-      });
-    });
-  }
-
   logOut() {
-    this.settings_.token = '';
+    this.setSetting(Constants.PREFNAME_TOKEN, '');
     this.loggedIn_ = false;
-    this.saveSettings_();
     this.onRefreshError_();
   }
 
   requestData(path = '') {
     let headers = new Headers();
-    headers.append('Authorization', `Basic ${this.settings_.token}`);
+    let token = this.settings_.getValue(Constants.PREFNAME_TOKEN);
+    headers.append('Authorization', `Basic ${token}`);
     return window
         .fetch(this.baseUrl_() + Constants.CRITIC_API_PATH + path, {headers})
         .then(response => {

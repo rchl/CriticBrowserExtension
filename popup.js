@@ -146,9 +146,19 @@ class CriticPopup {
 
   handleSettingChangeClick_(event, target) {
     let settingName = target.dataset.prefName;
-    if (target.type === 'checkbox') {
-      this.backgroundPage_.setSetting(settingName, target.checked);
+    let value;
+    switch (target.type) {
+      case 'checkbox':
+        value = target.checked;
+        break;
+      case 'radio':
+        value = target.value;
+        break;
+      default:
+        console.error('Unhandled setting type!');
+        break;
     }
+    this.backgroundPage_.setSetting(settingName, value);
     event.cancelBubble = true;
   }
 
@@ -165,7 +175,7 @@ class CriticPopup {
       template.push(
           CriticPopup.Templates.review(
               review, this.getPendingChanges_(review.id, data),
-              this.backgroundPage_.settings));
+              this.backgroundPage_.settings.toJSON()));
     }
     if (!template.length) {
       return [];
@@ -301,28 +311,11 @@ CriticPopup.Templates = class {
   }
 
   static settingsView(settings) {
-    let settingsArray = [];
-    for (let name in settings) {
-      let value = settings[name];
-      if (typeof value !== 'boolean') {
-        continue;
-      }
-      let attributes = {
-        'data-handler': 'setting-change',
-        'data-pref-name': name
-      };
-      attributes.type = 'checkbox';
-      if (value) {
-        attributes.checked = 'checked';
-      }
-      settingsArray.push(
-          ['label', ['input', attributes], Constants.settingDescription(name)]);
-    }
     return [
       'div',
       {'id': 'settings-view'},
       ['h3', 'Settings'],
-      ['div', settingsArray],
+      ['div', settings.getSettingsTemplate()],
       [
         'footer', ['button', {'data-handler': 'settings-close'}, 'Go back'],
         ['button', {'class': 'logout', 'data-handler': 'logout'}, 'Logout']
