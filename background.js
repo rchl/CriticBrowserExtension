@@ -5,10 +5,9 @@ class BackgroundPage {
     // When adding new setting also add description in constants.js, if setting
     // is to be exposed.
     this.settings_ = {
-      'username': '',
-      'password': '',
+      'token': '',
       'notifications': true,
-      'sslTunnel': true,
+      'sslTunnel': false,
       'devLinks': false,
       'singleLine': false,
     };
@@ -112,17 +111,54 @@ class BackgroundPage {
 
   init_() {
     return this.readSettings_().then(() => {
-      this.loggedIn_ = this.settings_.username && this.settings_.password;
+      this.loggedIn_ = this.settings_.token;
       if (this.loggedIn_) {
         return this.refreshData_();
       }
     });
   }
 
-  attemptLogIn(username, password, useSslTunnel) {
-    this.settings_.username = username;
-    this.settings_.password = password;
-    this.settings_.sslTunnel = useSslTunnel;
+  openTokenPage(loginMode) {
+    if (loginMode === Constants.LOGIN_MODE_CRITIC_STABLE_SSL) {
+      this.settings_.sslTunnel = true;
+      this.settings_.devLinks = false;
+    } else if (loginMode === Constants.LOGIN_MODE_CRITIC_DEV) {
+      this.settings_.sslTunnel = false;
+      this.settings_.devLinks = true;
+    } else {
+      this.settings_.sslTunnel = false;
+      this.settings_.devLinks = false;
+    }
+    this.saveSettings_();
+
+    let url = `${this.baseUrl_()}${Constants.CRITIC_TOKEN_PATH}`;
+    new Promise(resolve => chrome.tabs.create({url}, resolve))
+        .then(tab => {
+          let injectOptions = {
+            'file': 'login_helper.js',
+            'runAt': 'document_start'
+          };
+          return new Promise(
+              resolve =>
+                  chrome.tabs.executeScript(tab.id, injectOptions, () => {
+                    if (chrome.runtime.lastError) {
+                      return null;
+                    }
+                    resolve(tab);
+                  }));
+        })
+        .then(tab => {
+          if (tab) {
+            let port = chrome.tabs.connect(tab.id);
+            port.onMessage.addListener(
+                (message, port) =>
+                    this.handleLoginFromInjectedScript_(message));
+          }
+        });
+  }
+
+  handleLoginFromInjectedScript_(token) {
+    this.settings_.token = token;
     return this.getDashboardData_().then(() => {
       if (!this.lastError_) {
         this.saveSettings_();
@@ -167,7 +203,7 @@ class BackgroundPage {
 
   onRefreshError_() {
     this.dashboardData_ = null;
-    chrome.browserAction.setBadgeText({'text': 'ERR'});
+    chrome.browserAction.setBadgeText({'text': this.loggedIn_ ? 'ERR' : ''});
   }
 
   scheduleNextCheck_() {
@@ -348,8 +384,7 @@ class BackgroundPage {
   }
 
   logOut() {
-    this.settings_.username = '';
-    this.settings_.password = '';
+    this.settings_.token = '';
     this.loggedIn_ = false;
     this.saveSettings_();
     this.onRefreshError_();
@@ -357,13 +392,7 @@ class BackgroundPage {
 
   requestData(path = '') {
     let headers = new Headers();
-    headers.append(
-        'Authorization', 'Basic ' +
-            window.btoa(
-                unescape(
-                    encodeURIComponent(
-                        this.settings_.username + ':' +
-                        this.settings_.password))));
+    headers.append('Authorization', `Basic ${this.settings_.token}`);
     return window
         .fetch(this.baseUrl_() + Constants.CRITIC_API_PATH + path, {headers})
         .then(response => {
@@ -375,7 +404,7 @@ class BackgroundPage {
           return response.json();
         }, error => this.lastError_ = error.message);
   }
-};
+}
 
 BackgroundPage.NOTIFICATION_TYPE_COMMENTS = 0;
 BackgroundPage.NOTIFICATION_TYPE_LINES = 1;

@@ -4,12 +4,9 @@ class CriticPopup {
   constructor() {
     this.backgroundPage_ = null;
     this.mainElement_ = null;
-    this.usernameElement_ = null;
-    this.passwordElement_ = null;
-    this.submitElement_ = null;
     this.errorElement_ = null;
-    this.sslCheckboxElement_ = null;
-    this.formElement_ = null;
+    EventHandler.register(
+        'click', 'login', (event, target) => this.handleLogin_(event, target));
     EventHandler.register(
         'click', 'review',
         (event, target) => this.handleReviewClick_(event, target));
@@ -94,17 +91,10 @@ class CriticPopup {
   }
 
   onLoggedOut_(errorText) {
-    this.formElement_ = document.body.cleanAppendTemplate(
-        CriticPopup.Templates.loginView(
-            this.backgroundPage_.settings.sslTunnel));
-    this.usernameElement_ = this.formElement_.querySelector('#username');
-    this.passwordElement_ = this.formElement_.querySelector('#password');
-    this.sslCheckboxElement_ = this.formElement_.querySelector('#ssl-tunnel');
-    this.submitElement_ = this.formElement_.querySelector('#submit-button');
-    this.errorElement_ = this.formElement_.querySelector('#error-text');
-    this.formElement_.addEventListener(
-        'submit', event => this.handleLogin_(event));
-    this.disableLoginForm_(false);
+    let settings = this.backgroundPage_.settings;
+    let formElement =
+        document.body.cleanAppendTemplate(CriticPopup.Templates.loginView());
+    this.errorElement_ = formElement.querySelector('#error-text');
     this.errorElement_.textContent = errorText;
     setTimeout(() => this.errorElement_.textContent = '', 3000);
   }
@@ -112,13 +102,6 @@ class CriticPopup {
   onLoggedInWithError_(errorText) {
     document.body.cleanAppendTemplate(
         CriticPopup.Templates.loggedInErrorView(errorText));
-  }
-
-  disableLoginForm_(disable) {
-    this.usernameElement_.disabled = disable;
-    this.passwordElement_.disabled = disable;
-    this.sslCheckboxElement_.disabled = disable;
-    this.submitElement_.disabled = disable;
   }
 
   handleReviewClick_(event, target) {
@@ -215,22 +198,9 @@ class CriticPopup {
     }
   }
 
-  handleLogin_(event) {
-    this.disableLoginForm_(true);
-    this.usernameElement_.value =
-        this.usernameElement_.value.replace(/@.+/, '');
-    let progressElement =
-        document.body.appendTemplate(CriticPopup.Templates.loader());
-    progressElement.classList.add('overlay');
-    this.backgroundPage_
-        .attemptLogIn(
-            this.usernameElement_.value, this.passwordElement_.value,
-            this.sslCheckboxElement_.checked)
-        .then(() => {
-          progressElement.remove();
-          this.updateMainView_();
-        });
-    event.preventDefault();
+  handleLogin_(event, target) {
+    let loginMode = window.parseInt(target.dataset.loginMode, 10);
+    this.backgroundPage_.openTokenPage(loginMode);
   }
 
   getPendingChanges_(reviewId, data) {
@@ -255,32 +225,55 @@ CriticPopup.Templates = class {
   static loader() {
     return ['div', {'class': 'loader'}, ['div', {'class': 'throbber-loader'}]];
   }
-  static loginView(sslTunnelEnabled) {
+
+  static loginView() {
     return [
-      'form',
-      {'id': 'login-form'},
-      ['div', 'Username: '],
-      ['input', {'id': 'username'}],
-      ['div', 'Password: '],
-      ['input', {'id': 'password', 'type': 'password'}],
+      'div',
+      {'id': 'login-view'},
       [
-        'div',
         [
-          'label',
+          'div', 'Choose how to log in to critic (affects links opened ' +
+              'from the extension and can be changed later):'
+        ],
+        [
+          'div',
+          {'id': 'login-modes'},
           [
             [
-              'input', {
-                'type': 'checkbox',
-                'id': 'ssl-tunnel',
-                'checked': sslTunnelEnabled ? 'true' : null
-              }
+              'div',
+              {
+                'data-handler': 'login',
+                'class': 'stable-icon',
+                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE}`,
+              },
+              'Critic stable',
             ],
-            'Use SSL tunnel / not on Opera network'
-          ]
-        ]
+          ],
+          [
+            [
+              'div',
+              {
+                'data-handler': 'login',
+                'class': 'stable-icon',
+                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE_SSL}`,
+              },
+              'Critic stable through SSL tunnel',
+            ],
+          ],
+          [
+            [
+              'div',
+              {
+                'data-handler': 'login',
+                'class': 'dev-icon',
+                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_DEV}`,
+              },
+              'Critic dev',
+            ],
+          ],
+        ],
+        ['div', {'id': 'error-text'}],
       ],
-      ['input', {'type': 'submit', 'id': 'submit-button', 'value': 'Login'}],
-      ['div', {'id': 'error-text'}],
     ];
   }
 
