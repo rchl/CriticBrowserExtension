@@ -2,7 +2,7 @@
   "author": "Rafal Chlodnicki",
   "manifest_version": 2,
   "name": "Critic",
-  "version": "0.5",
+  "version": "0.6",
   "background": {
     "scripts": [
       "constants.js",
