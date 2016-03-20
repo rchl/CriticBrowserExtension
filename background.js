@@ -9,6 +9,8 @@ class BackgroundPage {
     this.refreshTimeout_ = null;
     this.state_ = new StateHandler();
     this.notificationsUrlMap_ = new Map();
+    this.popupPort_ = null;
+    chrome.runtime.onConnect.addListener(port => this.onConnect_(port));
     chrome.notifications.onClicked.addListener(
         id => this.onNotificationClicked_(id));
     this.ready_ = this.init_();
@@ -44,6 +46,11 @@ class BackgroundPage {
         return this.refreshData_();
       }
     });
+  }
+
+  onConnect_(port) {
+    this.popupPort_ = port;
+    port.onDisconnect.addListener(port => this.popupPort_ = null);
   }
 
   getChangesFromLastSeen() { return this.state_.getChangesFromLastSeen(); }
@@ -120,6 +127,9 @@ class BackgroundPage {
       }
     }
     this.state_.markAsLastCheckDone();
+    if (this.popupPort_) {
+      this.popupPort_.postMessage({'type': 'updated'});
+    }
   }
 
   onRefreshError_() {

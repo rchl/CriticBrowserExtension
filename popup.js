@@ -7,6 +7,9 @@ class CriticPopup {
     this.backgroundPage_ = null;
     this.mainElement_ = null;
     this.errorElement_ = null;
+    this.backgroundPagePort_ = chrome.runtime.connect();
+    this.backgroundPagePort_.onMessage.addListener(
+        message => this.onBackgroundPageMessage_(message));
     this.contextMenuManager_.register(
         'review',
         (event, target) => this.handleReviewContextMenu_(event, target));
@@ -57,6 +60,13 @@ class CriticPopup {
       }
     } else {
       this.onLoggedOut_(this.backgroundPage_.lastError);
+    }
+  }
+
+  onBackgroundPageMessage_(message) {
+    if (message.type === 'updated' &&
+        document.body.querySelector('#main-view')) {
+      this.updateMainView_();
     }
   }
 
