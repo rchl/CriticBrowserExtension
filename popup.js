@@ -184,7 +184,7 @@ class CriticPopup {
   }
 
   highlightChanges_() {
-    let changed = this.backgroundPage_.state.getChangesFromLastSeen();
+    let changed = this.backgroundPage_.getChangesFromLastSeen();
     for (let id of changed.pending) {
       let elements =
           document.querySelectorAll('.review-' + id + ' .line-count');

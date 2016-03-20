@@ -83,8 +83,6 @@ class BackgroundPage {
 
   get data() { return this.dashboardData_; }
 
-  get state() { return this.state_; }
-
   /**
    * Whether in logged in state.
    *
@@ -110,6 +108,8 @@ class BackgroundPage {
       }
     });
   }
+
+  getChangesFromLastSeen() { return this.state_.getChangesFromLastSeen(); }
 
   openTokenPage(loginMode) {
     this.setSetting(Constants.PREFNAME_LOGIN_MODE, loginMode);
