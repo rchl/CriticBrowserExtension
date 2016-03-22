@@ -61,13 +61,19 @@ class StateHandler {
     return changes;
   }
 
-  markAsLastCheckDone() { this.lastCheck_ = this.current_; }
+  markAsLastCheckDone() { this.copyObject_(this.lastCheck_, this.current_); }
 
-  markAsSeen() { this.lastSeen_ = this.current_; }
+  markAsSeen() { this.copyObject_(this.lastSeen_, this.current_); }
 
   markUnreadAsSeen(reviewId) { this.lastSeen_['unread'].push(reviewId); }
 
   markPendingAsSeen(reviewId) { this.lastSeen_['pending'].push(reviewId); }
 
   markAcceptedAsSeen(reviewId) { this.lastSeen_['accepted'].push(reviewId); }
+
+  copyObject_(target, source) {
+    for (let key of Object.keys(source)) {
+      target[key] = source[key].slice();
+    }
+  }
 };
