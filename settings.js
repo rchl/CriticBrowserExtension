@@ -45,17 +45,14 @@ class Settings {
             'Compact view (one line per review)'));
     this.settings_.set(
         Constants.PREFNAME_LOGIN_MODE,
-        new MultiValueIntegerSetting(
-            Constants.PREFNAME_LOGIN_MODE,
-            [
-              [Constants.LOGIN_MODE_CRITIC_STABLE, 'Critic stable'],
-              [
-                Constants.LOGIN_MODE_CRITIC_STABLE_SSL,
-                'Critic stable through SSL tunnel'
-              ],
-              [Constants.LOGIN_MODE_CRITIC_DEV, 'Critic dev'],
-            ],
-            'Connection mode'));
+        new MultiValueIntegerSetting(Constants.PREFNAME_LOGIN_MODE, [
+          [Constants.LOGIN_MODE_CRITIC_STABLE, 'Critic stable'],
+          [
+            Constants.LOGIN_MODE_CRITIC_STABLE_SSL,
+            'Critic stable through SSL tunnel'
+          ],
+          [Constants.LOGIN_MODE_CRITIC_DEV, 'Critic dev'],
+        ]));
     this.settings_.set(
         Constants.PREFNAME_TOKEN,
         new StringSetting(Constants.PREFNAME_TOKEN, ''));
@@ -128,6 +125,7 @@ class MultiValueIntegerSetting extends BaseSetting {
 
   getTemplate() {
     let values = this.values_.map(valueArray => {
+      console.assert(valueArray[1], 'All values must have a title.');
       let attributes = {
         'type': 'radio',
         'name': this.name_,

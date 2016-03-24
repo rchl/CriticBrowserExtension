@@ -6,7 +6,6 @@ class CriticPopup {
         ContextMenuManager.createForRoot(document, {'debuggingEnabled': true});
     this.backgroundPage_ = null;
     this.mainElement_ = null;
-    this.errorElement_ = null;
     this.backgroundPagePort_ = chrome.runtime.connect();
     this.backgroundPagePort_.onMessage.addListener(
         message => this.onBackgroundPageMessage_(message));
@@ -15,6 +14,12 @@ class CriticPopup {
         (event, target) => this.handleReviewContextMenu_(event, target));
     EventHandler.register(
         'click', 'login', (event, target) => this.handleLogin_(event, target));
+    EventHandler.register(
+        'click', 'login-manual',
+        (event, target) => this.handleLoginManual_(event, target));
+    EventHandler.register(
+        'submit', 'manual-login-submit',
+        (event, target) => this.handleLoginManualSubmit_(event, target));
     EventHandler.register(
         'click', 'review',
         (event, target) => this.handleReviewClick_(event, target));
@@ -53,13 +58,13 @@ class CriticPopup {
 
   updateMainView_() {
     if (this.backgroundPage_.loggedIn) {
-      if (this.backgroundPage_.lastError) {
-        this.onLoggedInWithError_(this.backgroundPage_.lastError);
+      if (this.backgroundPage_.getLastError()) {
+        this.onLoggedInWithError_(this.backgroundPage_.getLastError());
       } else {
         this.onLoggedIn_();
       }
     } else {
-      this.onLoggedOut_(this.backgroundPage_.lastError);
+      this.onLoggedOut_(this.backgroundPage_.getLastError());
     }
   }
 
@@ -67,6 +72,14 @@ class CriticPopup {
     if (message.type === 'updated' &&
         document.body.querySelector('#main-view')) {
       this.updateMainView_();
+    }
+  }
+
+  setLoginErrorText_(text) {
+    let errorElement = document.getElementById('error-text');
+    if (errorElement) {
+      errorElement.textContent = text;
+      setTimeout(() => errorElement.textContent = '', 3000);
     }
   }
 
@@ -103,12 +116,8 @@ class CriticPopup {
   }
 
   onLoggedOut_(errorText) {
-    let settings = this.backgroundPage_.settings;
-    let formElement =
-        document.body.cleanAppendTemplate(CriticPopup.Templates.loginView());
-    this.errorElement_ = formElement.querySelector('#error-text');
-    this.errorElement_.textContent = errorText;
-    setTimeout(() => this.errorElement_.textContent = '', 3000);
+    document.body.cleanAppendTemplate(CriticPopup.Templates.loginView());
+    this.setLoginErrorText_(errorText);
   }
 
   onLoggedInWithError_(errorText) {
@@ -224,6 +233,35 @@ class CriticPopup {
     this.backgroundPage_.openTokenPage(loginMode);
   }
 
+  handleLoginManual_(event, target) {
+    document.body.cleanAppendTemplate(CriticPopup.Templates.manualLoginView());
+  }
+
+  handleLoginManualSubmit_(event, target) {
+    event.preventDefault();
+    let elements = target.elements;
+    let token =
+        window.btoa(`${elements.username.value}:${elements.password.value}`);
+    this.toggleFormElements_(target, false);
+    let throbber =
+        document.body.appendTemplate(CriticPopup.Templates.floatingLoader());
+    this.backgroundPage_.loginWithToken(token).then(loggedIn => {
+      if (loggedIn) {
+        this.updateMainView_();
+      } else {
+        this.setLoginErrorText_(this.backgroundPage_.getLastError());
+        this.toggleFormElements_(target, true);
+        throbber.remove();
+      }
+    })
+  }
+
+  toggleFormElements_(form, enabled) {
+    for (let element of Array.from(form.elements)) {
+      element.disabled = !enabled;
+    }
+  }
+
   getPendingChanges_(reviewId, data) {
     let shared = data.active.sharedPendingChanges[reviewId];
     let unshared = data.active.unsharedPendingChanges[reviewId];
@@ -247,52 +285,74 @@ CriticPopup.Templates = class {
     return ['div', {'class': 'loader'}, ['div', {'class': 'throbber-loader'}]];
   }
 
+  static floatingLoader() {
+    return [
+      'div', {'class': 'loader floating'},
+      ['div', {'class': 'throbber-loader'}]
+    ];
+  }
+
   static loginView() {
     return [
       'div',
-      {'id': 'login-view'},
+      {'class': 'view-container unselectable'},
       [
         [
-          'div', 'Choose how to log in to critic (affects links opened ' +
-              'from the extension and can be changed later):'
+          '#text',
+          'Choose which critic instance you want to use. This will ' +
+              'affect which instance the extension communicates with and ' +
+              'how links are opened from the extension.',
         ],
         [
           'div',
-          {'id': 'login-modes'},
-          [
-            [
-              'div',
-              {
-                'data-handler': 'login',
-                'class': 'stable-icon',
-                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE}`,
-              },
-              'Critic stable',
-            ],
-          ],
-          [
-            [
-              'div',
-              {
-                'data-handler': 'login',
-                'class': 'stable-icon',
-                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE_SSL}`,
-              },
-              'Critic stable through SSL tunnel',
-            ],
-          ],
-          [
-            [
-              'div',
-              {
-                'data-handler': 'login',
-                'class': 'dev-icon',
-                'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_DEV}`,
-              },
-              'Critic dev',
-            ],
-          ],
+          {
+            'data-handler': 'login',
+            'class': 'login-mode stable-icon',
+            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE}`,
+          },
+          'Critic stable',
         ],
+        [
+          'div',
+          {
+            'data-handler': 'login',
+            'class': 'login-mode dev-icon',
+            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_DEV}`,
+          },
+          'Critic dev',
+        ],
+        [
+          '#text', 'SSL tunnel option requires intranet credentials as ' +
+              'opposed to other methods which use token authentication. ' +
+              'Avoid if you can.'
+        ],
+        [
+          'div', {
+            'data-handler': 'login-manual',
+            'class': 'login-mode stable-icon',
+            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE_SSL}`,
+          },
+          'Critic stable through SSL tunnel'
+        ],
+        ['div', {'id': 'error-text'}],
+      ],
+    ];
+  }
+
+  static manualLoginView() {
+    return [
+      'div',
+      {'class': 'view-container centered-content unselectable'},
+      ['h3', 'Enter your intranet credentials'],
+      [
+        'form',
+        {'data-handler': 'manual-login-submit', 'class': 'centered-form'},
+        ['input', {'name': 'username', 'placeholder': 'Username'}],
+        [
+          'input',
+          {'name': 'password', 'type': 'password', 'placeholder': 'Password'}
+        ],
+        ['button', 'Login'],
         ['div', {'id': 'error-text'}],
       ],
     ];
@@ -324,7 +384,7 @@ CriticPopup.Templates = class {
   static settingsView(settings) {
     return [
       'div',
-      {'id': 'settings-view'},
+      {'id': 'settings-view', 'class': 'unselectable'},
       ['h3', 'Settings'],
       ['div', settings.getSettingsTemplate()],
       [

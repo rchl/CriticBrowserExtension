@@ -36,7 +36,13 @@ class BackgroundPage {
    * No data is available in error state. Can be set either in logged in or out
    * state.
    */
-  get lastError() { return this.lastError_; }
+  getLastError() {
+    let error = this.lastError_;
+    if (!this.loggedIn_) {
+      this.lastError_ = null;
+    }
+    return error;
+  }
 
   init_() {
     return this.settings_.ready().then(() => {
@@ -77,19 +83,19 @@ class BackgroundPage {
           if (tab) {
             let port = chrome.tabs.connect(tab.id);
             port.onMessage.addListener(
-                (message, port) =>
-                    this.handleLoginFromInjectedScript_(message));
+                (message, port) => this.loginWithToken(message));
           }
         });
   }
 
-  handleLoginFromInjectedScript_(token) {
+  loginWithToken(token) {
     this.settings_.setValue(Constants.PREFNAME_TOKEN, token);
     return this.getDashboardData_().then(() => {
       if (!this.lastError_) {
         this.settings_.save();
         this.scheduleNextCheck_();
       }
+      return this.loggedIn_;
     });
   }
 
