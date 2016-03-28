@@ -10,6 +10,9 @@ class BackgroundPage {
     this.state_ = new StateHandler();
     this.notificationsUrlMap_ = new Map();
     this.popupPort_ = null;
+    // Set to true on manual or initial login to only show a summary of changes
+    // in notifications.
+    this.initialLogin_ = true;
     chrome.runtime.onConnect.addListener(port => this.onConnect_(port));
     chrome.notifications.onClicked.addListener(
         id => this.onNotificationClicked_(id));
@@ -89,6 +92,7 @@ class BackgroundPage {
   }
 
   loginWithToken(token) {
+    this.initialLogin_ = true;
     this.settings_.setValue(Constants.PREFNAME_TOKEN, token);
     return this.getDashboardData_().then(() => {
       if (!this.lastError_) {
@@ -107,6 +111,7 @@ class BackgroundPage {
         this.loggedIn_ = true;
         this.dashboardData_ = data;
         this.processData_();
+        this.initialLogin_ = false;
       }
     });
   }
@@ -229,8 +234,36 @@ class BackgroundPage {
   }
 
   triggerNotifications_() {
-    if (this.state_.hasNewSinceLastCheck()) {
-      let changes = this.state_.getChangesFromLastCheck();
+    if (!this.state_.hasNewSinceLastCheck()) {
+      return;
+    }
+    let changes = this.state_.getChangesFromLastCheck();
+    if (this.initialLogin_) {
+      let title = 'Critic summary';
+      let summary = [];
+      for (let key of Object.keys(changes)) {
+        let changesCount = changes[key].length;
+        if (changesCount === 0) {
+          continue;
+        }
+        if (key === 'unread') {
+          summary.push('Reviews with unread comments: ' + changesCount);
+        } else if (key === 'pending') {
+          summary.push('Reviews with pending changes: ' + changesCount);
+        } else if (key === 'accepted') {
+          summary.push('Reviews accepted: ' + changesCount);
+        }
+      }
+      if (summary.length) {
+        chrome.notifications.create(undefined, {
+          'type': 'basic',
+          'iconUrl': 'images/128.png',
+          'title': title,
+          'message': summary.join('\n'),
+          'isClickable': true,
+        });
+      }
+    } else {
       for (let key of Object.keys(changes)) {
         for (let id of changes[key]) {
           let review = this.dashboardData_.all[id];
@@ -272,6 +305,10 @@ class BackgroundPage {
   }
 
   onNotificationClicked_(notificationId) {
+    // Might not be in a map if it's a summary notification.
+    if (!this.notificationsUrlMap_.has(notificationId)) {
+      return;
+    }
     let data = this.notificationsUrlMap_.get(notificationId);
     this.notificationsUrlMap_.delete(notificationId);
     let url;
