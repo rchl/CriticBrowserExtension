@@ -156,9 +156,7 @@ class BackgroundPage {
 
   resetReadStatus() {
     this.state_.markAsSeen();
-    if (this.loggedIn_ && !this.lastError_) {
-      this.processData_();
-    }
+    this.updateBadgeColor_();
   }
 
   setSetting(name, value) {
