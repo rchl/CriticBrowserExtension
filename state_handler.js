@@ -1,6 +1,14 @@
 'use strict';
 
 class StateHandler {
+  static get KEY_UNREAD() { return 'unread'; }
+  static get KEY_PENDING() { return 'pending'; }
+  static get KEY_ACCEPTED() { return 'accepted'; }
+
+  static get KEYS() {
+    return [this.KEY_UNREAD, this.KEY_PENDING, this.KEY_ACCEPTED];
+  }
+
   constructor() {
     // Latest state as seen during last update check.
     this.current_ = this.getSealedDefaultObject_();
@@ -10,14 +18,22 @@ class StateHandler {
     this.lastCheck_ = this.getSealedDefaultObject_();
   }
 
-  getSealedDefaultObject_() {
-    return Object.seal({'unread': [], 'pending': [], 'accepted': []});
-  }
-
   updateState(stateObject) {
-    for (let key of Object.keys(stateObject)) {
-      console.assert(this.current_.hasOwnProperty(key));
-      this.current_[key] = stateObject[key];
+    const oldCurrent = this.getSealedDefaultObject_();
+    this.copyObject_(this.current_, oldCurrent);
+    for (let KEY of StateHandler.KEYS) {
+      if (stateObject.hasOwnProperty(KEY)) {
+        this.current_[KEY] = stateObject[KEY];
+      }
+    }
+    // Remove all IDs from other objects that were removed from current so
+    // that we are properly notified of changes when same ID re-appears.
+    const removed = this.getObjectChanges_(this.current_, oldCurrent);
+    for (let KEY of StateHandler.KEYS) {
+      this.lastSeen_[KEY] =
+          this.lastSeen_[KEY].filter(id => removed[KEY].indexOf(id) === -1);
+      this.lastCheck_[KEY] =
+          this.lastCheck_[KEY].filter(id => removed[KEY].indexOf(id) === -1);
     }
   }
 
@@ -39,11 +55,35 @@ class StateHandler {
     return Object.keys(changes).some(key => changes[key].length);
   }
 
+  markAsLastCheckDone() { this.copyObject_(this.current_, this.lastCheck_); }
+
+  markAsSeen() { this.copyObject_(this.current_, this.lastSeen_); }
+
+  markUnreadAsSeen(reviewId) {
+    this.lastSeen_[StateHandler.KEY_UNREAD].push(reviewId);
+  }
+
+  markPendingAsSeen(reviewId) {
+    this.lastSeen_[StateHandler.KEY_PENDING].push(reviewId);
+  }
+
+  markAcceptedAsSeen(reviewId) {
+    this.lastSeen_[StateHandler.KEY_ACCEPTED].push(reviewId);
+  }
+
+  getSealedDefaultObject_() {
+    return Object.seal({
+      [StateHandler.KEY_UNREAD]: [],
+      [StateHandler.KEY_PENDING]: [],
+      [StateHandler.KEY_ACCEPTED]: []
+    });
+  }
+
   /**
    * Returns the differences between key values in provided objects.
    *
-   * Returned object contains the same keys as both input objects filled
-   * with values that only existing in the newObject.
+   * Returned object contains the same keys as both input objects, filled
+   * with values that exist only in the newObject.
    *
    * @param  {Object} oldObject The object to compare with.
    * @param  {Object} newObject The object to compare with.
@@ -52,28 +92,18 @@ class StateHandler {
    */
   getObjectChanges_(oldObject, newObject) {
     let changes = this.getSealedDefaultObject_();
-    for (let key of Object.keys(changes)) {
-      console.assert(oldObject.hasOwnProperty(key));
-      console.assert(newObject.hasOwnProperty(key));
-      changes[key] =
-          newObject[key].filter(item => oldObject[key].indexOf(item) === -1);
+    for (let KEY of StateHandler.KEYS) {
+      console.assert(oldObject.hasOwnProperty(KEY));
+      console.assert(newObject.hasOwnProperty(KEY));
+      changes[KEY] =
+          newObject[KEY].filter(item => oldObject[KEY].indexOf(item) === -1);
     }
     return changes;
   }
 
-  markAsLastCheckDone() { this.copyObject_(this.lastCheck_, this.current_); }
-
-  markAsSeen() { this.copyObject_(this.lastSeen_, this.current_); }
-
-  markUnreadAsSeen(reviewId) { this.lastSeen_['unread'].push(reviewId); }
-
-  markPendingAsSeen(reviewId) { this.lastSeen_['pending'].push(reviewId); }
-
-  markAcceptedAsSeen(reviewId) { this.lastSeen_['accepted'].push(reviewId); }
-
-  copyObject_(target, source) {
-    for (let key of Object.keys(source)) {
-      target[key] = source[key].slice();
+  copyObject_(source, target) {
+    for (let KEY of StateHandler.KEYS) {
+      target[KEY] = source[KEY].slice();
     }
   }
 }
