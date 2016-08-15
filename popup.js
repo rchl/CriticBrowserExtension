@@ -202,23 +202,21 @@ class CriticPopup {
   highlightChanges_() {
     let changed = this.backgroundPage_.getChangesFromLastSeen();
     for (let id of changed.pending) {
-      let elements =
-          document.querySelectorAll('.review-' + id + ' .line-count');
+      let elements = document.querySelectorAll(`.review-${id} .line-count`);
       Array.from(elements).forEach(element => {
         element.classList.add('highlight');
         setTimeout(() => element.classList.remove('highlight'), 1000);
       });
     }
     for (let id of changed.unread) {
-      let elements =
-          document.querySelectorAll('.review-' + id + ' .unread-count');
+      let elements = document.querySelectorAll(`.review-${id} .unread-count`);
       Array.from(elements).forEach(element => {
         element.classList.add('highlight');
         setTimeout(() => element.classList.remove('highlight'), 1000);
       });
     }
     for (let id of changed.accepted) {
-      let element = document.querySelector('.review-' + id);
+      let element = document.querySelector(`.review-${id}`);
       element.classList.add('highlight');
       setTimeout(() => element.classList.remove('highlight'), 1000);
     }
@@ -278,7 +276,7 @@ class CriticPopup {
           'unreadCount': unreadCount ? String(unreadCount) : undefined,
     }
   }
-};
+}
 
 CriticPopup.Templates = class {
   static loader() {
@@ -409,7 +407,7 @@ CriticPopup.Templates = class {
     let ownersFullname = review.owners.map(owner => owner.fullname).join(', ');
     return [
       'div', {
-        'class': 'review pending review-' + review.id,
+        'class': `review pending review-${review.id}`,
         'data-menu': 'review',
         'data-owners': owners,
         'data-review-id': String(review.id),
@@ -433,7 +431,7 @@ CriticPopup.Templates = class {
                   'data-handler': 'line-count',
                   'tabIndex': '1',
                 },
-                lineCount + ' line(s)',
+                `${lineCount} line(s)`,
               ] :
               [],
           unreadCount ?
@@ -444,36 +442,35 @@ CriticPopup.Templates = class {
                   'data-handler': 'unread-count',
                   'tabIndex': '1',
                 },
-                unreadCount + ' comment(s)',
+                `${unreadCount} comment(s)`,
               ] :
               [],
         ],
       ],
-      (settings.singleLine ?
-           [] :
-           [
-             'div',
-             {'class': 'second-review-line'},
-             ['span', 'r/' + review.id],
-             ['span', `Owner: ${ownersFullname}`],
-             (review.progress.openIssues ?
-                  [
-                    'span',
-                    {
-                      'class': 'link gray',
-                      'data-handler': 'open-issues',
-                      'tabIndex': '1',
-                    },
-                    'Issues: ' + String(review.progress.openIssues),
-                  ] :
-                  ['span']),
-           ]),
+      (settings.singleLine ? [] :
+                             [
+                               'div',
+                               {'class': 'second-review-line'},
+                               ['span', `r/${review.id}`],
+                               ['span', `Owner: ${ownersFullname}`],
+                               (review.progress.openIssues ?
+                                    [
+                                      'span',
+                                      {
+                                        'class': 'link gray',
+                                        'data-handler': 'open-issues',
+                                        'tabIndex': '1',
+                                      },
+                                      `Issues: ${review.progress.openIssues}`,
+                                    ] :
+                                    ['span']),
+                             ]),
       (review.progress.accepted ?
            [] :
            [
              'div', {
                'class': 'progress',
-               'style': 'background-size: ' + progress + '% 100%'
+               'style': `background-size: ${progress}% 100%`
              }
            ])
     ]

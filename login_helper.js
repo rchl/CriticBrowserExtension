@@ -2,7 +2,6 @@
 
 chrome.runtime.onConnect.addListener(extensionPort => {
   window.addEventListener('message', event => {
-    console.log('message to injected script', event.data);
     if (event.source !== window) {
       return;
     }

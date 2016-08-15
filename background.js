@@ -178,26 +178,24 @@ class BackgroundPage {
   }
 
   openOpenIssuesUrl(reviewId) {
-    let url = this.baseUrl_() + 'showcomments?review=' + reviewId +
-        '&filter=open-issues';
+    let url =
+        `${this.baseUrl_()}showcomments?review=${reviewId}&filter=open-issues`;
     this.openUrl_(url);
   }
 
   openOwnerReviewsUrl(owner) {
-    let url = this.baseUrl_() + 'search?qowner=%27' + owner + '%27';
+    let url = `${this.baseUrl_()}search?qowner=%27${owner}%27`;
     this.openUrl_(url);
   }
 
-  reviewUrl_(reviewId) { return this.baseUrl_() + 'r/' + reviewId; }
+  reviewUrl_(reviewId) { return `${this.baseUrl_()}r/${reviewId}`; }
 
   pendingChangesUrl_(reviewId) {
-    return this.baseUrl_() + 'showcommit?review=' + reviewId +
-        '&filter=pending';
+    return `${this.baseUrl_()}showcommit?review=${reviewId}&filter=pending`;
   }
 
   unreadCommentsUrl_(reviewId) {
-    return this.baseUrl_() + 'showcomments?review=' + reviewId +
-        '&filter=toread';
+    return `${this.baseUrl_()}showcomments?review=${reviewId}&filter=toread`;
   }
 
   openUrl_(url) {
@@ -245,11 +243,11 @@ class BackgroundPage {
           continue;
         }
         if (key === 'unread') {
-          summary.push('Reviews with unread comments: ' + changesCount);
+          summary.push(`Reviews with unread comments: ${changesCount}`);
         } else if (key === 'pending') {
-          summary.push('Reviews with pending changes: ' + changesCount);
+          summary.push(`Reviews with pending changes: ${changesCount}`);
         } else if (key === 'accepted') {
-          summary.push('Reviews accepted: ' + changesCount);
+          summary.push(`Reviews accepted: ${changesCount}`);
         }
       }
       if (summary.length) {
@@ -268,11 +266,12 @@ class BackgroundPage {
           let title;
           let type;
           switch (key) {
-            case 'unread':
+            case 'unread': {
               let unreadCount = this.dashboardData_.active.unreadComments[id];
-              title = 'Unread comments (' + unreadCount + ')';
+              title = `Unread comments (${unreadCount})`;
               type = BackgroundPage.NOTIFICATION_TYPE_COMMENTS;
               break;
+            }
             case 'pending':
               title = 'New changes';
               type = BackgroundPage.NOTIFICATION_TYPE_LINES;

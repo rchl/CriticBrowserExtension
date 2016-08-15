@@ -14,7 +14,7 @@ class Settings {
 
   getSettingsTemplate() {
     let template = [];
-    for (let [prefName, setting] of this.settings_) {
+    for (let setting of this.settings_.values()) {
       if (setting.isExposedInUI_()) {
         template.push(setting.getTemplate());
       }

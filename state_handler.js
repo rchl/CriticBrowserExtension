@@ -76,4 +76,4 @@ class StateHandler {
       target[key] = source[key].slice();
     }
   }
-};
+}
