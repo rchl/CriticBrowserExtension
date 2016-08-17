@@ -127,25 +127,25 @@ class CriticPopup {
 
   handleReviewClick_(event, target) {
     let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openReviewUrl(reviewId);
+    this.backgroundPage_.openReviewUrl(reviewId, event);
     event.cancelBubble = true;
   }
 
   handleUnreadCommentClick_(event, target) {
     let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openUnreadCommentsUrl(reviewId);
+    this.backgroundPage_.openUnreadCommentsUrl(reviewId, event);
     event.cancelBubble = true;
   }
 
   handleLineCountClick_(event, target) {
     let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openPendingChangesUrl(reviewId);
+    this.backgroundPage_.openPendingChangesUrl(reviewId, event);
     event.cancelBubble = true;
   }
 
   handleOpenIssuesClick_(event, target) {
     let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openOpenIssuesUrl(reviewId);
+    this.backgroundPage_.openOpenIssuesUrl(reviewId, event);
     event.cancelBubble = true;
   }
 

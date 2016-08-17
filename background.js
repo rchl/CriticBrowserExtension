@@ -164,28 +164,30 @@ class BackgroundPage {
     this.settings_.save();
   }
 
-  openReviewUrl(reviewId) { this.openUrl_(this.reviewUrl_(reviewId)); }
-
-  openPendingChangesUrl(reviewId) {
-    this.openUrl_(this.pendingChangesUrl_(reviewId));
+  openReviewUrl(reviewId, event) {
+    this.openUrl_(this.reviewUrl_(reviewId), event);
   }
 
-  openUnreadCommentsUrl(reviewId) {
-    this.openUrl_(this.unreadCommentsUrl_(reviewId));
+  openPendingChangesUrl(reviewId, event) {
+    this.openUrl_(this.pendingChangesUrl_(reviewId), event);
+  }
+
+  openUnreadCommentsUrl(reviewId, event) {
+    this.openUrl_(this.unreadCommentsUrl_(reviewId), event);
     // Opening unread URL marks them as read so trigger update shortly after
     // opening to make the state match.
     setTimeout(() => this.refreshData_(), 3000);
   }
 
-  openOpenIssuesUrl(reviewId) {
+  openOpenIssuesUrl(reviewId, event) {
     let url =
         `${this.baseUrl_()}showcomments?review=${reviewId}&filter=open-issues`;
-    this.openUrl_(url);
+    this.openUrl_(url, event);
   }
 
-  openOwnerReviewsUrl(owner) {
+  openOwnerReviewsUrl(owner, event) {
     let url = `${this.baseUrl_()}search?qowner=%27${owner}%27`;
-    this.openUrl_(url);
+    this.openUrl_(url, event);
   }
 
   reviewUrl_(reviewId) { return `${this.baseUrl_()}r/${reviewId}`; }
@@ -198,14 +200,18 @@ class BackgroundPage {
     return `${this.baseUrl_()}showcomments?review=${reviewId}&filter=toread`;
   }
 
-  openUrl_(url) {
+  openUrl_(url, event = null) {
+    let active = null;
+    if (event && event.button === 1) {
+      active = false;
+    }
     chrome.tabs.query(
         {url},
         tabs => {
           if (tabs.length) {
-            chrome.tabs.update(tabs[0].id, {'url': url, 'active': true});
+            chrome.tabs.update(tabs[0].id, {url, 'active': true});
           } else {
-            chrome.tabs.create({url});
+            chrome.tabs.create({url, active});
           }
         });
   }
@@ -326,7 +332,7 @@ class BackgroundPage {
         console.error('Unhandled type!');
     }
     this.updateBadgeColor_();
-    chrome.tabs.create({url});
+    this.openUrl_(url);
     chrome.windows.update(chrome.windows.WINDOW_ID_CURRENT, {'focused': true});
   }
 
