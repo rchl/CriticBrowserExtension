@@ -15,12 +15,6 @@ class CriticPopup {
     EventHandler.register(
         'click', 'login', (event, target) => this.handleLogin_(event, target));
     EventHandler.register(
-        'click', 'login-manual',
-        (event, target) => this.handleLoginManual_(event, target));
-    EventHandler.register(
-        'submit', 'manual-login-submit',
-        (event, target) => this.handleLoginManualSubmit_(event, target));
-    EventHandler.register(
         'click', 'review',
         (event, target) => this.handleReviewClick_(event, target));
     EventHandler.register(
@@ -231,35 +225,6 @@ class CriticPopup {
     this.backgroundPage_.openTokenPage(loginMode);
   }
 
-  handleLoginManual_(event, target) {
-    document.body.cleanAppendTemplate(CriticPopup.Templates.manualLoginView());
-  }
-
-  handleLoginManualSubmit_(event, target) {
-    event.preventDefault();
-    let elements = target.elements;
-    let token =
-        window.btoa(`${elements.username.value}:${elements.password.value}`);
-    this.toggleFormElements_(target, false);
-    let throbber =
-        document.body.appendTemplate(CriticPopup.Templates.floatingLoader());
-    this.backgroundPage_.loginWithToken(token).then(loggedIn => {
-      if (loggedIn) {
-        this.updateMainView_();
-      } else {
-        this.setLoginErrorText_(this.backgroundPage_.getLastError());
-        this.toggleFormElements_(target, true);
-        throbber.remove();
-      }
-    })
-  }
-
-  toggleFormElements_(form, enabled) {
-    for (let element of Array.from(form.elements)) {
-      element.disabled = !enabled;
-    }
-  }
-
   getPendingChanges_(reviewId, data) {
     let shared = data.active.sharedPendingChanges[reviewId];
     let unshared = data.active.unsharedPendingChanges[reviewId];
@@ -281,13 +246,6 @@ class CriticPopup {
 CriticPopup.Templates = class {
   static loader() {
     return ['div', {'class': 'loader'}, ['div', {'class': 'throbber-loader'}]];
-  }
-
-  static floatingLoader() {
-    return [
-      'div', {'class': 'loader floating'},
-      ['div', {'class': 'throbber-loader'}]
-    ];
   }
 
   static loginView() {
@@ -319,38 +277,6 @@ CriticPopup.Templates = class {
           },
           'Critic dev',
         ],
-        [
-          '#text', 'SSL tunnel option requires intranet credentials as ' +
-              'opposed to other methods which use token authentication. ' +
-              'Avoid if you can.'
-        ],
-        [
-          'div', {
-            'data-handler': 'login-manual',
-            'class': 'login-mode stable-icon',
-            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE_SSL}`,
-          },
-          'Critic stable through SSL tunnel'
-        ],
-        ['div', {'id': 'error-text'}],
-      ],
-    ];
-  }
-
-  static manualLoginView() {
-    return [
-      'div',
-      {'class': 'view-container centered-content unselectable'},
-      ['h3', 'Enter your intranet credentials'],
-      [
-        'form',
-        {'data-handler': 'manual-login-submit', 'class': 'centered-form'},
-        ['input', {'name': 'username', 'placeholder': 'Username'}],
-        [
-          'input',
-          {'name': 'password', 'type': 'password', 'placeholder': 'Password'}
-        ],
-        ['button', 'Login'],
         ['div', {'id': 'error-text'}],
       ],
     ];

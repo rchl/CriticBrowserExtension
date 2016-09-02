@@ -47,10 +47,6 @@ class Settings {
         Constants.PREFNAME_LOGIN_MODE,
         new MultiValueIntegerSetting(Constants.PREFNAME_LOGIN_MODE, [
           [Constants.LOGIN_MODE_CRITIC_STABLE, 'Critic stable'],
-          [
-            Constants.LOGIN_MODE_CRITIC_STABLE_SSL,
-            'Critic stable through SSL tunnel'
-          ],
           [Constants.LOGIN_MODE_CRITIC_DEV, 'Critic dev'],
         ]));
     this.settings_.set(
