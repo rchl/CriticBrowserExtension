@@ -58,6 +58,10 @@ h4 {
   background: orange;
 }
 
+.header-finished {
+  background: lightgray;
+}
+
 .header-error {
   background: #F93A3A;
 }
@@ -175,6 +179,13 @@ h4 {
   float: right;
   margin-left: 1em;
   transition: background-color 2s;
+  white-space: nowrap;
+}
+
+.unsubmitted {
+  background: #ffeb3b;
+  font-size: smaller;
+  text-align: center;
   white-space: nowrap;
 }
 

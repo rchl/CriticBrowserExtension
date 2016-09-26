@@ -88,25 +88,44 @@ class CriticPopup {
           ownedPendingReviews, data, 'Owned pending', 'header-owned-pending'),
     ];
     let seenIds = new Set(data.owned.accepted.concat(data.owned.pending));
-    let pendingReviews = {};
+    let pendingReviews = [];
     data.active.hasPendingChanges.forEach(id => {
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        pendingReviews[id] = data.all[id];
+        pendingReviews.push(data.all[id]);
       }
     });
     data.active.hasUnreadComments.forEach(id => {
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        pendingReviews[id] = data.all[id];
+        pendingReviews.push(data.all[id]);
       }
     });
     reviewsTemplate.push(
         this.createSectionTemplate_(
             pendingReviews, data, 'Pending', 'header-pending'));
+    let finishedReviews = [];
+    for (let id in data.unsubmitted) {
+      let review = data.all[id];
+      if (review.state === 'closed') {
+        finishedReviews.push(review);
+      }
+    }
+    reviewsTemplate.push(
+        this.createSectionTemplate_(
+            finishedReviews, data, 'Finished', 'header-finished'));
     let mainTemplate = CriticPopup.Templates.mainView(reviewsTemplate);
     this.mainElement_ = document.body.cleanAppendTemplate(mainTemplate);
     this.highlightChanges_();
+  }
+
+  createSectionTemplate_(reviews, data, title, className) {
+    let settings = this.backgroundPage_.settings.toJSON();
+    let template = reviews.map(
+        review => CriticPopup.Templates.review(
+            review, this.getPendingChanges_(review.id, data), settings));
+    return template.length ? [['h3', {'class': className}, title], template] :
+                             [];
   }
 
   onLoggedOut_(errorText) {
@@ -165,7 +184,7 @@ class CriticPopup {
         value = target.value;
         break;
       default:
-        console.error('Unhandled setting type!');
+        console.error(`Unhandled setting type ${target.type}!`);
         break;
     }
     this.backgroundPage_.setSetting(settingName, value);
@@ -178,42 +197,25 @@ class CriticPopup {
     event.cancelBubble = true;
   }
 
-  createSectionTemplate_(reviews, data, title, className) {
-    let template = [];
-    for (let id in reviews) {
-      let review = reviews[id];
-      template.push(
-          CriticPopup.Templates.review(
-              review, this.getPendingChanges_(review.id, data),
-              this.backgroundPage_.settings.toJSON()));
-    }
-    if (!template.length) {
-      return [];
-    }
-    return [['h3', {'class': className}, title], template];
-  }
-
   highlightChanges_() {
     let changed = this.backgroundPage_.getChangesFromLastSeen();
     for (let id of changed.pending) {
       let elements = document.querySelectorAll(`.review-${id} .line-count`);
-      Array.from(elements).forEach(element => {
-        element.classList.add('highlight');
-        setTimeout(() => element.classList.remove('highlight'), 1000);
-      });
+      Array.from(elements).forEach(element => this.highlightElement_(element));
     }
     for (let id of changed.unread) {
       let elements = document.querySelectorAll(`.review-${id} .unread-count`);
-      Array.from(elements).forEach(element => {
-        element.classList.add('highlight');
-        setTimeout(() => element.classList.remove('highlight'), 1000);
-      });
+      Array.from(elements).forEach(element => this.highlightElement_(element));
     }
     for (let id of changed.accepted) {
       let element = document.querySelector(`.review-${id}`);
-      element.classList.add('highlight');
-      setTimeout(() => element.classList.remove('highlight'), 1000);
+      this.highlightElement_(element);
     }
+  }
+
+  highlightElement_(element) {
+    element.classList.add('highlight');
+    setTimeout(() => element.classList.remove('highlight'), 1000);
   }
 
   handleReviewContextMenu_(event, target) {
@@ -238,8 +240,9 @@ class CriticPopup {
     }
     return {
       'lineCount': lineCount ? String(lineCount) : undefined,
-          'unreadCount': unreadCount ? String(unreadCount) : undefined,
-    }
+      'unreadCount': unreadCount ? String(unreadCount) : undefined,
+      'unsubmittedChanges': data.unsubmitted[reviewId],
+    };
   }
 }
 
@@ -391,6 +394,13 @@ CriticPopup.Templates = class {
                                     ] :
                                     ['span']),
                              ]),
+      pendingChanges.unsubmittedChanges ?
+          [
+            'div',
+            {'class': 'unsubmitted'},
+            'has unsubmitted changes',
+          ] :
+          [],
       (review.progress.accepted ?
            [] :
            [
