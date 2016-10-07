@@ -1,6 +1,11 @@
 'use strict';
 
 class CriticPopup {
+  static get HANDLER_CHILD_REVIEW() { return 'review-block'; }
+  static get HANDLER_CHILD_LINE_COUNT() { return 'line-count'; }
+  static get HANDLER_CHILD_UNREAD_COUNT() { return 'unread-count'; }
+  static get HANDLER_CHILD_OPEN_ISSUES() { return 'open-issues'; }
+
   constructor() {
     this.contextMenuManager_ =
         ContextMenuManager.createForRoot(document, {'debuggingEnabled': true});
@@ -12,20 +17,18 @@ class CriticPopup {
     this.contextMenuManager_.register(
         'review',
         (event, target) => this.handleReviewContextMenu_(event, target));
-    EventHandler.register(
-        'click', 'login', (event, target) => this.handleLogin_(event, target));
+    document.addEventListener(
+        'mousedown', event => this.handleMouseDown_(event));
+    // Review handler
     EventHandler.register(
         'click', 'review',
         (event, target) => this.handleReviewClick_(event, target));
     EventHandler.register(
-        'click', 'unread-count',
-        (event, target) => this.handleUnreadCommentClick_(event, target));
+        'auxclick', 'review',
+        (event, target) => this.handleReviewClick_(event, target));
+    // Other (UI) handlers.
     EventHandler.register(
-        'click', 'line-count',
-        (event, target) => this.handleLineCountClick_(event, target));
-    EventHandler.register(
-        'click', 'open-issues',
-        (event, target) => this.handleOpenIssuesClick_(event, target));
+        'click', 'login', (event, target) => this.handleLogin_(event, target));
     EventHandler.register(
         'click', 'settings-open',
         (event, target) => this.handleSettingsOpenClick_(event, target));
@@ -138,27 +141,38 @@ class CriticPopup {
         CriticPopup.Templates.loggedInErrorView(errorText));
   }
 
+  handleMouseDown_(event) {
+    // Disables middle mouse scrolling and allows for using middle click to open
+    // links.
+    if (event.button === 1) {
+      event.preventDefault();
+    }
+  }
+
   handleReviewClick_(event, target) {
-    let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openReviewUrl(reviewId, event);
-    event.cancelBubble = true;
-  }
-
-  handleUnreadCommentClick_(event, target) {
-    let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openUnreadCommentsUrl(reviewId, event);
-    event.cancelBubble = true;
-  }
-
-  handleLineCountClick_(event, target) {
-    let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openPendingChangesUrl(reviewId, event);
-    event.cancelBubble = true;
-  }
-
-  handleOpenIssuesClick_(event, target) {
-    let reviewId = target.getAncestorAttr('data-review-id');
-    this.backgroundPage_.openOpenIssuesUrl(reviewId, event);
+    if (![0, 1].includes(event.button)) {
+      return;
+    }
+    const reviewId = target.dataset.reviewId;
+    const childHandler = event.target.getAncestorAttr('data-handler-child');
+    switch (childHandler) {
+      case CriticPopup.HANDLER_CHILD_REVIEW:
+        this.backgroundPage_.openReviewUrl(reviewId, event);
+        break;
+      case CriticPopup.HANDLER_CHILD_LINE_COUNT:
+        this.backgroundPage_.openPendingChangesUrl(reviewId, event);
+        break;
+      case CriticPopup.HANDLER_CHILD_UNREAD_COUNT:
+        this.backgroundPage_.openUnreadCommentsUrl(reviewId, event);
+        break;
+      case CriticPopup.HANDLER_CHILD_OPEN_ISSUES:
+        this.backgroundPage_.openOpenIssuesUrl(reviewId, event);
+        break;
+      default:
+        console.assert(`Unhandled child handler ${childHandler}`);
+        break;
+    }
+    event.preventDefault();
     event.cancelBubble = true;
   }
 
@@ -267,7 +281,7 @@ CriticPopup.Templates = class {
           {
             'data-handler': 'login',
             'class': 'login-mode stable-icon',
-            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_STABLE}`,
+            'data-login-mode': String(Constants.LOGIN_MODE_CRITIC_STABLE),
           },
           'Critic stable',
         ],
@@ -276,7 +290,7 @@ CriticPopup.Templates = class {
           {
             'data-handler': 'login',
             'class': 'login-mode dev-icon',
-            'data-login-mode': `${Constants.LOGIN_MODE_CRITIC_DEV}`,
+            'data-login-mode': String(Constants.LOGIN_MODE_CRITIC_DEV),
           },
           'Critic dev',
         ],
@@ -337,6 +351,8 @@ CriticPopup.Templates = class {
     return [
       'div', {
         'class': `review pending review-${review.id}`,
+        'data-handler': 'review',
+        'data-handler-child': CriticPopup.HANDLER_CHILD_REVIEW,
         'data-menu': 'review',
         'data-owners': owners,
         'data-review-id': String(review.id),
@@ -345,7 +361,6 @@ CriticPopup.Templates = class {
         'div',
         {
           'class': 'first-review-line',
-          'data-handler': 'review',
         },
         [
           'span', {'class': 'link black grow ellipsis', 'tabIndex': '1'},
@@ -357,7 +372,7 @@ CriticPopup.Templates = class {
                 'span',
                 {
                   'class': 'line-count link',
-                  'data-handler': 'line-count',
+                  'data-handler-child': CriticPopup.HANDLER_CHILD_LINE_COUNT,
                   'tabIndex': '1',
                 },
                 `${lineCount} line(s)`,
@@ -368,7 +383,7 @@ CriticPopup.Templates = class {
                 'span',
                 {
                   'class': 'unread-count link',
-                  'data-handler': 'unread-count',
+                  'data-handler-child': CriticPopup.HANDLER_CHILD_UNREAD_COUNT,
                   'tabIndex': '1',
                 },
                 `${unreadCount} comment(s)`,
@@ -376,24 +391,26 @@ CriticPopup.Templates = class {
               [],
         ],
       ],
-      (settings.singleLine ? [] :
-                             [
-                               'div',
-                               {'class': 'second-review-line'},
-                               ['span', `r/${review.id}`],
-                               ['span', `Owner: ${ownersFullname}`],
-                               (review.progress.openIssues ?
-                                    [
-                                      'span',
-                                      {
-                                        'class': 'link gray',
-                                        'data-handler': 'open-issues',
-                                        'tabIndex': '1',
-                                      },
-                                      `Issues: ${review.progress.openIssues}`,
-                                    ] :
-                                    ['span']),
-                             ]),
+      (settings.singleLine ?
+           [] :
+           [
+             'div',
+             {'class': 'second-review-line'},
+             ['span', `r/${review.id}`],
+             ['span', `Owner: ${ownersFullname}`],
+             (review.progress.openIssues ?
+                  [
+                    'span',
+                    {
+                      'class': 'link gray',
+                      'data-handler-child':
+                          CriticPopup.HANDLER_CHILD_OPEN_ISSUES,
+                      'tabIndex': '1',
+                    },
+                    `Issues: ${review.progress.openIssues}`,
+                  ] :
+                  ['span']),
+           ]),
       pendingChanges.unsubmittedChanges ?
           [
             'div',
