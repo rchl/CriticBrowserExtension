@@ -10,9 +10,14 @@ class BackgroundPage {
     this.state_ = new StateHandler();
     this.notificationsUrlMap_ = new Map();
     this.popupPort_ = null;
+    this.loginTabId_ = chrome.tabs.TAB_ID_NONE;
     // Set to true on manual or initial login to only show a summary of changes
     // in notifications.
     this.initialLogin_ = true;
+    this.onLoginTabUpdatedBound_ = (tabId, changeInfo, tab) =>
+        this.onLoginTabUpdated_(tabId, changeInfo, tab);
+    this.onLoginTabClosedBound_ = (tabId, removeInfo) =>
+        this.onLoginTabClosed_(tabId, removeInfo);
     chrome.runtime.onConnect.addListener(port => this.onConnect_(port));
     chrome.notifications.onClicked.addListener(
         id => this.onNotificationClicked_(id));
@@ -66,29 +71,52 @@ class BackgroundPage {
 
   openTokenPage(loginMode) {
     this.setSetting(Constants.PREFNAME_LOGIN_MODE, loginMode);
-    let url = `${this.baseUrl_()}${Constants.CRITIC_TOKEN_PATH}`;
+    const url = `${this.baseUrl_()}${Constants.CRITIC_TOKEN_PATH}`;
     new Promise(resolve => chrome.tabs.create({url}, resolve))
-        .then(tab => {
-          let injectOptions = {
-            'file': 'login_helper.js',
-            'runAt': 'document_start'
-          };
-          return new Promise(
-              resolve =>
-                  chrome.tabs.executeScript(tab.id, injectOptions, () => {
-                    if (chrome.runtime.lastError) {
-                      return null;
-                    }
-                    resolve(tab);
-                  }));
-        })
-        .then(tab => {
-          if (tab) {
-            let port = chrome.tabs.connect(tab.id);
-            port.onMessage.addListener(
-                (message, port) => this.loginWithToken(message));
-          }
-        });
+        .then(tab => this.injectLoginHelper_(tab.id))
+        .then(() => this.setupLoginTabUpdateListener_());
+  }
+
+  injectLoginHelper_(tabId) {
+    return new Promise(resolve => {
+      const injectOptions = {
+        'file': 'login_helper.js',
+        'runAt': 'document_start'
+      };
+      chrome.tabs.executeScript(tabId, injectOptions, () => {
+        if (chrome.runtime.lastError) {
+          resolve();
+          return;
+        }
+        const port = chrome.tabs.connect(tabId);
+        port.onMessage.addListener(
+            (message, port) => this.loginWithToken(message));
+        this.loginTabId_ = tabId;
+        resolve();
+      });
+    });
+  }
+
+  setupLoginTabUpdateListener_() {
+    console.assert(this.loginTabId_ !== chrome.tabs.TAB_ID_NONE);
+    // Set up the listener until the tab is closed as we might need to inject
+    // script again after login credentials are entered on critic.
+    chrome.tabs.onUpdated.addListener(this.onLoginTabUpdatedBound_);
+    chrome.tabs.onRemoved.addListener(this.onLoginTabClosedBound_);
+  }
+
+  onLoginTabUpdated_(tabId, changeInfo, tab) {
+    if (changeInfo.status === 'complete') {
+      this.injectLoginHelper_(tabId);
+    }
+  }
+
+  onLoginTabClosed_(tabId, removeInfo) {
+    if (tabId === this.loginTabId_) {
+      chrome.tabs.onUpdated.removeListener(this.onLoginTabUpdatedBound_);
+      chrome.tabs.onRemoved.removeListener(this.onLoginTabClosedBound_);
+      this.loginTabId_ = chrome.tabs.TAB_ID_NONE;
+    }
   }
 
   loginWithToken(token) {
