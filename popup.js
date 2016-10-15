@@ -5,6 +5,7 @@ class CriticPopup {
   static get HANDLER_CHILD_LINE_COUNT() { return 'line-count'; }
   static get HANDLER_CHILD_UNREAD_COUNT() { return 'unread-count'; }
   static get HANDLER_CHILD_OPEN_ISSUES() { return 'open-issues'; }
+  static get SUPPORTED_EVENT_BUTTONS() { return [0, 1]; }
 
   constructor() {
     this.contextMenuManager_ =
@@ -150,7 +151,7 @@ class CriticPopup {
   }
 
   handleReviewClick_(event, target) {
-    if (![0, 1].includes(event.button)) {
+    if (!CriticPopup.SUPPORTED_EVENT_BUTTONS.includes(event.button)) {
       return;
     }
     const reviewId = target.dataset.reviewId;

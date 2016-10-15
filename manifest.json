@@ -35,7 +35,6 @@
    "permissions": [
      "https://critic.oslo.osa/JsonDashboard/*",
      "https://critic-dev.oslo.osa/JsonDashboard/*",
-     "https://ssl.opera.com:8128/JsonDashboard/*",
      "notifications",
      "storage",
      "tabs",
