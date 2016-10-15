@@ -105,6 +105,17 @@ class CriticPopup {
         pendingReviews.push(data.all[id]);
       }
     });
+    for (let id in data.unsubmitted) {
+      const intId = window.parseInt(id, 10);
+      if (!seenIds.has(intId)) {
+        let review = data.all[intId];
+        // Closed are shown in separate section.
+        if (review.state === 'open') {
+          seenIds.add(intId);
+          pendingReviews.push(review);
+        }
+      }
+    }
     reviewsTemplate.push(
         this.createSectionTemplate_(
             pendingReviews, data, 'Pending', 'header-pending'));
